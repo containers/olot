@@ -1,0 +1,19 @@
+.pytest_cache
+__pycache__
+*.omlmd.json
+*.omlmd.yaml
+*.joblib
+*.gguf
+tmp
+efi-variable-store
+*.onnx
+
+# Generated python library wheels
+dist
+
+# Mkdocs
+site
+
+# E2E
+venv
+temp

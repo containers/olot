@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "olot"
+version = "0.1.0"
+description = ""
+authors = ["tarilabs <matteo.mortari@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.9"
+
+
+[tool.poetry.group.test.dependencies]
+pytest = "^8.3.4"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
