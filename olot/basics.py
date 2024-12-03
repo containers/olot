@@ -2,15 +2,14 @@
 from dataclasses import dataclass
 import hashlib
 
-
-@dataclass
 class HashingWriter:
-    base_writer: any
-    hash_func: any = hashlib.sha256()
+    def __init__(self, base_writer, hash_func=None):
+        self.base_writer = base_writer
+        self.hash_func = hash_func or hashlib.sha256()
 
     def write(self, data: bytes):
-        self.base_writer.write(data)
         self.hash_func.update(data)
+        return self.base_writer.write(data)
     
     def tell(self):
         return self.base_writer.tell()
