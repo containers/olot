@@ -1,6 +1,9 @@
 
 from dataclasses import dataclass
 import hashlib
+import json
+from oci.oci_image_layout import OCIImageLayout
+from oci.oci_image_index import OCIImageIndex
 
 class HashingWriter:
     def __init__(self, base_writer, hash_func=None):
@@ -24,3 +27,9 @@ def get_file_hash(path) -> str:
         while chunk := f.read(4096):
             h.update(chunk)
     return h.hexdigest()
+
+if __name__ == "__main__":
+    with open("download/oci-layout", "r") as f:
+        m = OCIImageLayout.model_validate_json(f.read())
+    with open("download/index.json", "r") as f:
+        m = OCIImageIndex.model_validate_json(f.read())
