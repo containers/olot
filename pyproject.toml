@@ -7,6 +7,11 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.9"
+click = "^8.1.7"
+
+
+[tool.poetry.scripts]
+olot = "olot.cli:cli"
 
 
 [tool.poetry.group.test.dependencies]

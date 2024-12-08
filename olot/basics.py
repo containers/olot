@@ -34,33 +34,6 @@ def get_file_hash(path) -> str:
             h.update(chunk)
     return h.hexdigest()
 
+
 if __name__ == "__main__":
-    with open("download/oci-layout", "r") as f:
-        m = OCIImageLayout.model_validate_json(f.read())
-        print(m)
-    with open("download/index.json", "r") as f:
-        m = OCIImageIndex.model_validate_json(f.read())
-        print(m)
-        print(m.manifests[0].size)
-        print(m.model_dump_json(exclude_none=True))
-
-    ta = TypeAdapter(MediaType)
-    ta.validate_python("asd/asd")
-
-    with open("download/blobs/sha256/db142d433cdde11f10ae479dbf92f3b13d693fd1c91053da9979728cceb1dc68", "r") as f:
-        m = OCIImageIndex.model_validate_json(f.read())
-        print(m)
-        for manifest in m.manifests:
-            print(manifest.platform)
-            print(manifest.digest)
-
-    with open("download/blobs/sha256/a3e1b257b47c09c9997212e53a0b570c1666501ad26e5bf33461304babab47c7", "r") as f:
-        m = OCIImageManifest.model_validate_json(f.read())
-        print(m)
-        print(m.config.digest)
-
-    with open("download/blobs/sha256/517b897a6a8312ce202a85c8a517d820b0fc5b6f5d14ec2a3267906f75680403", "r") as f:
-        m = OCIManifestConfig.model_validate_json(f.read())
-        print(m)
-        print(m.rootfs)
-        print(m.history)
+    print("?")
