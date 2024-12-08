@@ -4,10 +4,11 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+from typing import Annotated, Any, Dict, List, Optional
 
 from pydantic import AnyUrl, BaseModel, Field, RootModel, conint, constr
 
+from .oci_common import MediaType, Digest, Urls, MapStringString, Int64, Base64, Annotations
 
 class Platform(BaseModel):
     architecture: str
@@ -21,11 +22,11 @@ class Platform(BaseModel):
 #     __root__: constr(
 #         regex=r'^[A-Za-z0-9][A-Za-z0-9!#$&^_.+-]{0,126}/[A-Za-z0-9][A-Za-z0-9!#$&^_.+-]{0,126}$'
 #     )
-class MediaType(RootModel[str]):
-    root: str = Field(
-        ...,
-        pattern=r'^[A-Za-z0-9][A-Za-z0-9!#$&^_.+-]{0,126}/[A-Za-z0-9][A-Za-z0-9!#$&^_.+-]{0,126}$'
-    )
+# class MediaType(RootModel[str]):
+#     root: str = Field(
+#         ...,
+#         pattern=r'^[A-Za-z0-9][A-Za-z0-9!#$&^_.+-]{0,126}/[A-Za-z0-9][A-Za-z0-9!#$&^_.+-]{0,126}$'
+#     )
 
 
 # class Digest(BaseModel):
@@ -33,44 +34,44 @@ class MediaType(RootModel[str]):
 #         ...,
 #         description="the cryptographic checksum digest of the object, in the pattern '<algorithm>:<encoded>'",
 #     )
-class Digest(RootModel[str]):
-    root: str = Field(
-        ...,
-        pattern=r'^[a-z0-9]+(?:[+._-][a-z0-9]+)*:[a-zA-Z0-9=_-]+$',
-        description="the cryptographic checksum digest of the object, in the pattern '<algorithm>:<encoded>'",
-    )
+# class Digest(RootModel[str]):
+#     root: str = Field(
+#         ...,
+#         pattern=r'^[a-z0-9]+(?:[+._-][a-z0-9]+)*:[a-zA-Z0-9=_-]+$',
+#         description="the cryptographic checksum digest of the object, in the pattern '<algorithm>:<encoded>'",
+#     )
 
 
 # class Urls(BaseModel):
 #     __root__: List[AnyUrl] = Field(
 #         ..., description='a list of urls from which this object may be downloaded'
 #     )
-class Urls(RootModel[List[AnyUrl]]):
-    root: List[AnyUrl] = Field(
-        ..., description='a list of urls from which this object may be downloaded'
-    )
+# class Urls(RootModel[List[AnyUrl]]):
+#     root: List[AnyUrl] = Field(
+#         ..., description='a list of urls from which this object may be downloaded'
+#     )
 
 
 # class MapStringString(BaseModel):
 #     __root__: Dict[constr(regex=r'.{1,}'), str]
-class MapStringString(RootModel[Dict[constr(pattern=r".{1,}"), str]]):
-    """
-    A Pydantic RootModel for a dictionary where keys are non-empty strings 
-    and values are strings.
-    """
-    root: Dict[constr(pattern=r".{1,}"), str] = Field(
-        ...,
-        description="A dictionary where keys are non-empty strings and values are strings."
-    )
+# class MapStringString(RootModel[Dict[constr(pattern=r".{1,}"), str]]):
+#     """
+#     A Pydantic RootModel for a dictionary where keys are non-empty strings 
+#     and values are strings.
+#     """
+#     root: Dict[constr(pattern=r".{1,}"), str] = Field(
+#         ...,
+#         description="A dictionary where keys are non-empty strings and values are strings."
+#     )
 
 
 # class Int8(BaseModel):
 #     __root__: conint(ge=-128, le=127)
-class Int8(RootModel[conint(ge=-128, le=127)]):
-    root: conint(ge=-128, le=127) = Field(
-        ...,
-        description="An integer constrained to the 8-bit signed range (-128 to 127)."
-    )
+# class Int8(RootModel[conint(ge=-128, le=127)]):
+#     root: conint(ge=-128, le=127) = Field(
+#         ...,
+#         description="An integer constrained to the 8-bit signed range (-128 to 127)."
+#     )
 
 
 # class Int16(BaseModel):
@@ -83,12 +84,12 @@ class Int8(RootModel[conint(ge=-128, le=127)]):
 
 # class Int64(BaseModel):
 #     __root__: conint(ge=-9223372036854776000, le=9223372036854776000)
-class Int64(RootModel[int]):
-    root: int = Field(
-        ...,
-        ge=-9223372036854776000,
-        le=9223372036854776000,
-    )
+# class Int64(RootModel[int]):
+#     root: int = Field(
+#         ...,
+#         ge=-9223372036854776000,
+#         le=9223372036854776000,
+#     )
 
 # class Uint8(BaseModel):
 #     __root__: conint(ge=0, le=255)
@@ -104,12 +105,12 @@ class Int64(RootModel[int]):
 
 # class Uint64(BaseModel):
 #     __root__: conint(ge=0, le=18446744073709552000)
-class Uint64(RootModel[int]):
-    root: int = Field(
-        ...,
-        ge=0,
-        le=18446744073709552000,
-    )
+# class Uint64(RootModel[int]):
+#     root: int = Field(
+#         ...,
+#         ge=0,
+#         le=18446744073709552000,
+#     )
 
 
 # class Uint16Pointer(BaseModel):
@@ -120,8 +121,8 @@ class Uint64(RootModel[int]):
 #     __root__: Optional[Uint64]
 
 
-class Base64(RootModel[str]):
-    pass
+# class Base64(RootModel[str]):
+#     pass
 
 
 # class StringPointer(BaseModel):
@@ -134,8 +135,8 @@ class Base64(RootModel[str]):
 
 # class Annotations(BaseModel):
 #     __root__: MapStringString
-class Annotations(RootModel[MapStringString]):
-    pass
+# class Annotations(RootModel[MapStringString]):
+#     pass
 
 
 class ContentDescriptor(BaseModel):
@@ -176,7 +177,7 @@ class Manifest(BaseModel):
 
 
 class OCIImageIndex(BaseModel):
-    schemaVersion: conint(ge=2, le=2) = Field(
+    schemaVersion: Annotated[int, Field(ge=2, le=2)] = Field(
         ...,
         description='This field specifies the image index schema version as an integer',
     )

@@ -2,8 +2,11 @@
 from dataclasses import dataclass
 import hashlib
 import json
+
+from pydantic import TypeAdapter
 from oci.oci_image_layout import OCIImageLayout
-from oci.oci_image_index import MediaType, OCIImageIndex
+from oci.oci_image_index import OCIImageIndex
+from oci.oci_common import MediaType
 
 class HashingWriter:
     def __init__(self, base_writer, hash_func=None):
@@ -38,4 +41,5 @@ if __name__ == "__main__":
         print(m.manifests[0].size)
         print(m.model_dump_json(exclude_none=True))
 
-    MediaType.model_validate_json("\"asd/asd\"")
+    ta = TypeAdapter(MediaType)
+    ta.validate_python("asd/asd")
