@@ -4,88 +4,89 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+from typing import Annotated, Any, Dict, List, Optional
 
 from pydantic import AnyUrl, BaseModel, Field, conint, constr
 
+from .oci_common import MediaType, Digest, Urls, MapStringString, Int64, Base64, Annotations
 
-class MediaType(BaseModel):
-    __root__: constr(
-        regex=r'^[A-Za-z0-9][A-Za-z0-9!#$&^_.+-]{0,126}/[A-Za-z0-9][A-Za-z0-9!#$&^_.+-]{0,126}$'
-    )
-
-
-class Digest(BaseModel):
-    __root__: constr(regex=r'^[a-z0-9]+(?:[+._-][a-z0-9]+)*:[a-zA-Z0-9=_-]+$') = Field(
-        ...,
-        description="the cryptographic checksum digest of the object, in the pattern '<algorithm>:<encoded>'",
-    )
+# class MediaType(BaseModel):
+#     __root__: constr(
+#         regex=r'^[A-Za-z0-9][A-Za-z0-9!#$&^_.+-]{0,126}/[A-Za-z0-9][A-Za-z0-9!#$&^_.+-]{0,126}$'
+#     )
 
 
-class Urls(BaseModel):
-    __root__: List[AnyUrl] = Field(
-        ..., description='a list of urls from which this object may be downloaded'
-    )
+# class Digest(BaseModel):
+#     __root__: constr(regex=r'^[a-z0-9]+(?:[+._-][a-z0-9]+)*:[a-zA-Z0-9=_-]+$') = Field(
+#         ...,
+#         description="the cryptographic checksum digest of the object, in the pattern '<algorithm>:<encoded>'",
+#     )
 
 
-class MapStringString(BaseModel):
-    __root__: Dict[constr(regex=r'.{1,}'), str]
+# class Urls(BaseModel):
+#     __root__: List[AnyUrl] = Field(
+#         ..., description='a list of urls from which this object may be downloaded'
+#     )
 
 
-class Int8(BaseModel):
-    __root__: conint(ge=-128, le=127)
+# class MapStringString(BaseModel):
+#     __root__: Dict[constr(regex=r'.{1,}'), str]
 
 
-class Int16(BaseModel):
-    __root__: conint(ge=-32768, le=32767)
+# class Int8(BaseModel):
+#     __root__: conint(ge=-128, le=127)
 
 
-class Int32(BaseModel):
-    __root__: conint(ge=-2147483648, le=2147483647)
+# class Int16(BaseModel):
+#     __root__: conint(ge=-32768, le=32767)
 
 
-class Int64(BaseModel):
-    __root__: conint(ge=-9223372036854776000, le=9223372036854776000)
+# class Int32(BaseModel):
+#     __root__: conint(ge=-2147483648, le=2147483647)
 
 
-class Uint8(BaseModel):
-    __root__: conint(ge=0, le=255)
+# class Int64(BaseModel):
+#     __root__: conint(ge=-9223372036854776000, le=9223372036854776000)
 
 
-class Uint16(BaseModel):
-    __root__: conint(ge=0, le=65535)
+# class Uint8(BaseModel):
+#     __root__: conint(ge=0, le=255)
 
 
-class Uint32(BaseModel):
-    __root__: conint(ge=0, le=4294967295)
+# class Uint16(BaseModel):
+#     __root__: conint(ge=0, le=65535)
 
 
-class Uint64(BaseModel):
-    __root__: conint(ge=0, le=18446744073709552000)
+# class Uint32(BaseModel):
+#     __root__: conint(ge=0, le=4294967295)
 
 
-class Uint16Pointer(BaseModel):
-    __root__: Optional[Uint16]
+# class Uint64(BaseModel):
+#     __root__: conint(ge=0, le=18446744073709552000)
 
 
-class Uint64Pointer(BaseModel):
-    __root__: Optional[Uint64]
+# class Uint16Pointer(BaseModel):
+#     __root__: Optional[Uint16]
 
 
-class Base64(BaseModel):
-    __root__: str
+# class Uint64Pointer(BaseModel):
+#     __root__: Optional[Uint64]
 
 
-class StringPointer(BaseModel):
-    __root__: Optional[str]
+# class Base64(BaseModel):
+#     __root__: str
 
 
-class MapStringObject(BaseModel):
-    __root__: Dict[constr(regex=r'.{1,}'), Dict[str, Any]]
+# class StringPointer(BaseModel):
+#     __root__: Optional[str]
 
 
-class Annotations(BaseModel):
-    __root__: MapStringString
+# class MapStringObject(BaseModel):
+#     __root__: Dict[constr(regex=r'.{1,}'), Dict[str, Any]]
+
+
+# class Annotations(BaseModel):
+#     __root__: MapStringString
 
 
 class ContentDescriptor(BaseModel):
@@ -110,7 +111,7 @@ class ContentDescriptor(BaseModel):
 
 
 class OCIImageManifest(BaseModel):
-    schemaVersion: conint(ge=2, le=2) = Field(
+    schemaVersion: Annotated[int, Field(ge=2, le=2)] = Field(
         ...,
         description='This field specifies the image manifest schema version as an integer',
     )
