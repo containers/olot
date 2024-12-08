@@ -1,15 +1,6 @@
 
-from dataclasses import dataclass
 import hashlib
-import json
-from typing import List
 
-from pydantic import TypeAdapter
-from .oci.oci_image_layout import OCIImageLayout
-from .oci.oci_image_index import Manifest, OCIImageIndex
-from .oci.oci_common import MediaType
-from .oci.oci_image_manifest import OCIImageManifest
-from .oci.oci_config import OCIManifestConfig
 
 class HashingWriter:
     def __init__(self, base_writer, hash_func=None):

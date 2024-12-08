@@ -4,11 +4,11 @@
 
 from __future__ import annotations
 
-from typing import Annotated, Any, Dict, List, Optional
+from typing import Annotated, List, Optional
 
-from pydantic import AnyUrl, BaseModel, Field, conint, constr
+from pydantic import BaseModel, Field
 
-from .oci_common import MediaType, Digest, Urls, MapStringString, Int64, Base64, Annotations
+from .oci_common import MediaType, Digest, Urls, Int64, Base64, Annotations
 
 # class MediaType(BaseModel):
 #     __root__: constr(

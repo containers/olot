@@ -1,11 +1,8 @@
 import gzip
-import hashlib
-import io
 import os
 from pathlib import Path
 import tarfile
 
-import pytest
 
 from olot.basics import HashingWriter, get_file_hash
 

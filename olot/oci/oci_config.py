@@ -6,11 +6,11 @@ from __future__ import annotations
 
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import List, Optional
 
-from pydantic import BaseModel, Field, conint, constr
+from pydantic import BaseModel, Field
 
-from .oci_common import MediaType, Digest, Urls, MapStringString, Int64, Base64, Annotations, MapStringObject
+from .oci_common import MapStringString, MapStringObject
 
 
 class Type(Enum):

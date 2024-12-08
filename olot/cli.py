@@ -11,22 +11,22 @@ from .oci.oci_config import OCIManifestConfig
 from .oci.oci_image_index import OCIImageIndex
 from .oci.oci_image_manifest import OCIImageManifest, ContentDescriptor
 
-from .basics import HashingWriter, get_file_hash
+from .basics import HashingWriter
 
 from .oci.oci_image_layout import ImageLayoutVersion, OCIImageLayout
 
 @click.command()
-@click.argument('ocilayout', type=click.Path(exists=True, file_okay=False, dir_okay=True))
+@click.argument('ocilayout_dir', type=click.Path(exists=True, file_okay=False, dir_okay=True))
 @click.argument('model_files', nargs=-1)
-def cli(ocilayout: str, model_files):
-    ocilayout = Path(ocilayout)
+def cli(ocilayout_dir: str, model_files):
+    ocilayout = Path(ocilayout_dir)
     check_ocilayout(ocilayout)
     new_layers = []
     for model in model_files:
         model = Path(model)
         new_layer = tar_into_ocilayout(ocilayout, model)
         new_layers.append(new_layer)
-    ocilayout_root_index: OCIImageIndex = None
+    ocilayout_root_index = None
     with open(ocilayout / "index.json", "r") as f:
         ocilayout_root_index = OCIImageIndex.model_validate_json(f.read())
     ocilayout_indexes: Dict[str, OCIImageIndex] = crawl_ocilayout_indexes(ocilayout, ocilayout_root_index)
@@ -35,7 +35,7 @@ def cli(ocilayout: str, model_files):
     for manifest_hash, manifest in ocilayout_manifests.items():
         print(manifest_hash, manifest.mediaType)
         config_sha = manifest.config.digest.removeprefix("sha256:")
-        mc: OCIManifestConfig = None
+        mc = None
         with open(ocilayout / "blobs" / "sha256" / config_sha, "r") as cf:
             mc = OCIManifestConfig.model_validate_json(cf.read())
         for layer in new_layers:
@@ -43,7 +43,10 @@ def cli(ocilayout: str, model_files):
             cd = ContentDescriptor(
                 mediaType="application/vnd.oci.image.layer.v1.tar",
                 digest="sha256:"+layer,
-                size=size                  
+                size=size,
+                urls=None,
+                data=None,
+                artifactType=None           
             )
             mc.rootfs.diff_ids.append("sha256:"+layer)
             manifest.layers.append(cd)
@@ -57,7 +60,7 @@ def cli(ocilayout: str, model_files):
         config_sha = mc_json_hash
         manifest.config.digest = "sha256:" + config_sha
         manifest.config.size = os.stat(ocilayout / "blobs" / "sha256" / config_sha).st_size
-        manifest.annotations["io.opendatahub.temp.author"] = "olot"
+        manifest.annotations["io.opendatahub.temp.author"] = "olot" # type:ignore
         manifest_json = manifest.model_dump_json(exclude_none=True)
         with open(ocilayout / "blobs" / "sha256" / manifest_hash, "w") as cf:
             cf.write(manifest_json)
@@ -141,7 +144,7 @@ def tar_into_ocilayout(ocilayout: Path, model: Path):
     temp_tar_filename = sha256_path / "temp_layer"
     with open(temp_tar_filename, "wb") as temp_file:
         writer = HashingWriter(temp_file)
-        with tarfile.open(fileobj=writer, mode="w") as tar:
+        with tarfile.open(fileobj=writer, mode="w") as tar: # type:ignore
             tar.add(model, arcname="/models/"+model.name)
     checksum = writer.hash_func.hexdigest()
     click.echo(f"digest of the tar file: {checksum}")
