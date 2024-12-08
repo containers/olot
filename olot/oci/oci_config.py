@@ -10,6 +10,8 @@ from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field, conint, constr
 
+from .oci_common import MediaType, Digest, Urls, MapStringString, Int64, Base64, Annotations, MapStringObject
+
 
 class Type(Enum):
     layers = 'layers'
@@ -28,60 +30,60 @@ class HistoryItem(BaseModel):
     empty_layer: Optional[bool] = None
 
 
-class MapStringObject(BaseModel):
-    __root__: Dict[constr(regex=r'.{1,}'), Dict[str, Any]]
+# class MapStringObject(BaseModel):
+#     __root__: Dict[constr(regex=r'.{1,}'), Dict[str, Any]]
 
 
-class Int8(BaseModel):
-    __root__: conint(ge=-128, le=127)
+# class Int8(BaseModel):
+#     __root__: conint(ge=-128, le=127)
 
 
-class Int16(BaseModel):
-    __root__: conint(ge=-32768, le=32767)
+# class Int16(BaseModel):
+#     __root__: conint(ge=-32768, le=32767)
 
 
-class Int32(BaseModel):
-    __root__: conint(ge=-2147483648, le=2147483647)
+# class Int32(BaseModel):
+#     __root__: conint(ge=-2147483648, le=2147483647)
 
 
-class Int64(BaseModel):
-    __root__: conint(ge=-9223372036854776000, le=9223372036854776000)
+# class Int64(BaseModel):
+#     __root__: conint(ge=-9223372036854776000, le=9223372036854776000)
 
 
-class Uint8(BaseModel):
-    __root__: conint(ge=0, le=255)
+# class Uint8(BaseModel):
+#     __root__: conint(ge=0, le=255)
 
 
-class Uint16(BaseModel):
-    __root__: conint(ge=0, le=65535)
+# class Uint16(BaseModel):
+#     __root__: conint(ge=0, le=65535)
 
 
-class Uint32(BaseModel):
-    __root__: conint(ge=0, le=4294967295)
+# class Uint32(BaseModel):
+#     __root__: conint(ge=0, le=4294967295)
 
 
-class Uint64(BaseModel):
-    __root__: conint(ge=0, le=18446744073709552000)
+# class Uint64(BaseModel):
+#     __root__: conint(ge=0, le=18446744073709552000)
 
 
-class Uint16Pointer(BaseModel):
-    __root__: Optional[Uint16]
+# class Uint16Pointer(BaseModel):
+#     __root__: Optional[Uint16]
 
 
-class Uint64Pointer(BaseModel):
-    __root__: Optional[Uint64]
+# class Uint64Pointer(BaseModel):
+#     __root__: Optional[Uint64]
 
 
-class Base64(BaseModel):
-    __root__: str
+# class Base64(BaseModel):
+#     __root__: str
 
 
-class StringPointer(BaseModel):
-    __root__: Optional[str]
+# class StringPointer(BaseModel):
+#     __root__: Optional[str]
 
 
-class MapStringString(BaseModel):
-    __root__: Dict[constr(regex=r'.{1,}'), str]
+# class MapStringString(BaseModel):
+#     __root__: Dict[constr(regex=r'.{1,}'), str]
 
 
 class Config(BaseModel):

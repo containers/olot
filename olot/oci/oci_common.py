@@ -1,5 +1,5 @@
 
-from typing import Annotated, Dict, List
+from typing import Annotated, Any, Dict, List
 from pydantic import AnyUrl, Field
 
 MediaType = Annotated[str, Field(
@@ -24,6 +24,9 @@ NonEmptyString = Annotated[str, Field(..., pattern=r".{1,}")]
 
 
 MapStringString = Annotated[Dict[NonEmptyString, str], Field(...)]
+
+
+MapStringObject = Annotated[Dict[NonEmptyString, Any], Field(...)]
 
 
 Int8 = Annotated[int, Field(ge=-128, le=127)]
