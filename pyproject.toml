@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "olot"
-version = "0.1.0"
+version = "0.1.1"
 description = ""
 authors = ["tarilabs <matteo.mortari@gmail.com>"]
 readme = "README.md"

@@ -31,7 +31,7 @@ oras cp --from-oci-layout ./download:latest quay.io/mmortari/demo20241208:latest
 demo
 
 ```
-podman run -it quay.io/mmortari/demo20241208 /bin/sh
+podman run --rm -it quay.io/mmortari/demo20241208 /bin/sh
 Trying to pull quay.io/mmortari/demo20241208:latest...
 Getting image source signatures
 Copying blob sha256:a29b139a2e0d0eb615fd1e2d51475834a404f1e2f440784079c7184bdc241289
@@ -46,4 +46,8 @@ dr-xr-xr-x    1 root     root            63 Dec  8 21:56 ..
 -rw-r--r--    1 501      20             389 Dec  8 21:34 README.md
 -rw-r--r--    1 501      20            3299 Dec  8 15:37 model.joblib
 / # exit
+```
+
+```sh
+podman image rm quay.io/mmortari/demo20241208:latest
 ```
