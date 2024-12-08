@@ -1,0 +1,50 @@
+name: Build
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [ '3.9', '3.10', '3.11', '3.12' ]
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install Poetry
+      run: |
+        pipx install poetry
+    - name: Install dependencies
+      run: |
+        make install
+    - name: Run tests
+      run: |
+        make test
+    - name: Run mypy
+      run: |
+        make mypy
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
+      - name: Install Poetry
+        run: |
+          pipx install poetry
+      - name: Install dependencies
+        run: |
+          make install
+      - name: Run Ruff
+        run: | 
+          poetry run ruff check --config=pyproject.toml --output-format=github .
