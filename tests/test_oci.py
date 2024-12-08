@@ -5,13 +5,13 @@ from pathlib import Path
 from pydantic import TypeAdapter
 
 from olot.oci.oci_config import OCIManifestConfig
-from olot.oci.oci_defs_descriptor import MediaType
+from olot.oci.oci_common import MediaType
 from olot.oci.oci_image_index import OCIImageIndex
 from olot.oci.oci_image_layout import OCIImageLayout
 from olot.oci.oci_image_manifest import OCIImageManifest
 
 
-def non_regression():
+def test_non_regression():
     base_path = Path(__file__).parent / "data" / "ocilayout1"
     with open(base_path / "oci-layout", "r") as f:
         m = OCIImageLayout.model_validate_json(f.read())
