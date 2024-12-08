@@ -123,5 +123,5 @@ class OCIImageManifest(BaseModel):
     )
     config: ContentDescriptor
     subject: Optional[ContentDescriptor] = None
-    layers: List[ContentDescriptor] = Field(..., min_items=1)
+    layers: List[ContentDescriptor] = Field(..., min_length=1)
     annotations: Optional[Annotations] = None
