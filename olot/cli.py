@@ -16,10 +16,13 @@ from .basics import HashingWriter
 from .oci.oci_image_layout import ImageLayoutVersion, OCIImageLayout
 
 @click.command()
-@click.argument('ocilayout_dir', type=click.Path(exists=True, file_okay=False, dir_okay=True))
+@click.argument('ocilayout', type=click.Path(exists=True, file_okay=False, dir_okay=True))
 @click.argument('model_files', nargs=-1)
-def cli(ocilayout_dir: str, model_files):
-    ocilayout = Path(ocilayout_dir)
+def cli(ocilayout: str, model_files):
+    oci_layers_on_top(Path(ocilayout), model_files)
+
+
+def oci_layers_on_top(ocilayout: Path, model_files):
     check_ocilayout(ocilayout)
     new_layers = []
     for model in model_files:
@@ -92,8 +95,13 @@ def cli(ocilayout_dir: str, model_files):
             print(f"old index {entry.digest} is now at {lookup_new_hash}")
             entry.digest = "sha256:" + lookup_new_hash
             entry.size = os.stat(ocilayout / "blobs" / "sha256" / lookup_new_hash).st_size
+        elif entry.mediaType == "application/vnd.oci.image.manifest.v1+json":
+            lookup_new_hash = new_ocilayout_manifests[entry.digest.removeprefix("sha256:")]
+            print(f"old index {entry.digest} is now at {lookup_new_hash}")
+            entry.digest = "sha256:" + lookup_new_hash
+            entry.size = os.stat(ocilayout / "blobs" / "sha256" / lookup_new_hash).st_size
         else:
-            raise ValueError("TODO the root index has Image manifest")
+            raise ValueError(f"unknown root index mediaType {entry.mediaType}")
     with open(ocilayout / "index.json", "w") as root_idx_f:
         root_idx_f.write(ocilayout_root_index.model_dump_json(exclude_none=True))
 
@@ -128,7 +136,10 @@ def crawl_ocilayout_indexes(ocilayout: Path, ocilayout_root_index: OCIImageIndex
             with open(index_path, "r") as ip:
                 ocilayout_indexes[target_hash] = OCIImageIndex.model_validate_json(ip.read())
         else:
-            raise ValueError("TODO the root index has Image manifest")
+            if len(ocilayout_indexes) == 0:
+                raise ValueError("TODO the root index has Image manifest")
+            else:
+                click.echo(f"Found Image Manifest {m.digest} in root index, TODO assuming these are referred through the other indexes")
     return ocilayout_indexes
         
 

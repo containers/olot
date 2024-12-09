@@ -5,6 +5,9 @@
 ```sh
 rm -rf download && skopeo copy --multi-arch all docker://quay.io/mmortari/hello-world-wait:latest oci:download:latest
 
+# oras copy --to-oci-layout quay.io/mmortari/hello-world-wait:latest ./download:latest
+# chmod +w download/blobs/sha256/*
+
 poetry run olot download tests/data/model.joblib README.md
 
 skopeo copy --multi-arch all oci:download:latest docker://quay.io/mmortari/demo20241208:latest
