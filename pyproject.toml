@@ -1,14 +1,14 @@
 [tool.poetry]
 name = "olot"
-version = "0.1.1"
-description = ""
+version = "0.1.2"
+description = "oci layers on top"
 authors = ["tarilabs <matteo.mortari@gmail.com>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.9"
 click = "^8.1.7"
-
+pydantic = "^2.10.3"
 
 [tool.poetry.scripts]
 olot = "olot.cli:cli"
