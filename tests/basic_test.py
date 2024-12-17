@@ -4,7 +4,6 @@ from pathlib import Path
 import tarfile
 from typing import Dict
 import pytest
-import gzip
 import shutil
 
 from olot.basics import HashingWriter, get_file_hash, check_ocilayout, read_ocilayout_root_index, crawl_ocilayout_indexes, crawl_ocilayout_manifests, compute_hash_of_str, targz_into_ocilayout, tar_into_ocilayout
