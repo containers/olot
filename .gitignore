@@ -2,7 +2,7 @@
 __pycache__
 *.omlmd.json
 *.omlmd.yaml
-*.joblib
+/*.joblib
 *.gguf
 tmp
 efi-variable-store
