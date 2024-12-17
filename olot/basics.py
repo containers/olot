@@ -185,9 +185,9 @@ def targz_into_ocilayout(ocilayout: Path, model: Path):
     temp_tar_filename = sha256_path / "temp_layer"
     with open(temp_tar_filename, "wb") as temp_file:
         writer = HashingWriter(temp_file)
-        with gzip.GzipFile(fileobj=writer, mode="wb", mtime=0, compresslevel=6) as gz:
+        with gzip.GzipFile(fileobj=writer, mode="wb", mtime=0, compresslevel=6) as gz: # type:ignore
             inner_writer = HashingWriter(gz)
-            with tarfile.open(fileobj=inner_writer, mode="w") as tar:
+            with tarfile.open(fileobj=inner_writer, mode="w") as tar: # type:ignore
                 tar.add(model, arcname="/models/"+model.name, filter=tar_filter_fn)
     checksum = writer.hash_func.hexdigest()
     tar_checksum = inner_writer.hash_func.hexdigest()
