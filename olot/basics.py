@@ -41,13 +41,13 @@ def get_file_hash(path) -> str:
 def oci_layers_on_top(ocilayout: Path, model_files):
     check_ocilayout(ocilayout)
     ocilayout_root_index = read_ocilayout_root_index(ocilayout)
+    ocilayout_indexes: Dict[str, OCIImageIndex] = crawl_ocilayout_indexes(ocilayout, ocilayout_root_index)
+    ocilayout_manifests: Dict[str, OCIImageManifest] = crawl_ocilayout_manifests(ocilayout, ocilayout_indexes)
     new_layers = []
     for model in model_files:
         model = Path(model)
         new_layer = tar_into_ocilayout(ocilayout, model)
         new_layers.append(new_layer)
-    ocilayout_indexes: Dict[str, OCIImageIndex] = crawl_ocilayout_indexes(ocilayout, ocilayout_root_index)
-    ocilayout_manifests: Dict[str, OCIImageManifest] = crawl_ocilayout_manifests(ocilayout, ocilayout_indexes)
     new_ocilayout_manifests: Dict[str, str] = {}
     for manifest_hash, manifest in ocilayout_manifests.items():
         print(manifest_hash, manifest.mediaType)

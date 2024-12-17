@@ -6,7 +6,7 @@ from typing import Dict
 
 import pytest
 
-from olot.basics import HashingWriter, get_file_hash, check_ocilayout, read_ocilayout_root_index, crawl_ocilayout_indexes, crawl_ocilayout_manifests
+from olot.basics import HashingWriter, get_file_hash, check_ocilayout, read_ocilayout_root_index, crawl_ocilayout_indexes, crawl_ocilayout_manifests, compute_hash_of_str, tar_into_ocilayout
 from olot.oci.oci_image_index import OCIImageIndex
 from olot.oci.oci_image_manifest import OCIImageManifest
 
@@ -17,6 +17,14 @@ def test_get_file_hash():
     hello_path = Path(__file__).parent / "data" / "hello.md"
     checksum_from_disk = get_file_hash(hello_path)
     assert checksum_from_disk == "d91aa8aa7b56706b89e4a9aa27d57f45785082ba40e8a67e58ede1ed5709afd8"
+
+
+def test_compute_hash_of_str():
+    """Basis compute_hash_of_str() fn testing
+    """
+    my_string = "Hello, World! Thanks Andrew, Roland, Syed and Quay team for the idea :)"
+    actual = compute_hash_of_str(my_string)
+    assert actual == "8695589abd30ec83cde42fabc3b4f6fd7da629eca94cf146c7920c6b067f4087" # can use echo -n "Hello, World! Thanks Andrew, Roland, Syed and Quay team for the idea :)" | shasum -a 256
 
 
 def test_bespoke_single_file_tar(tmp_path):
@@ -46,6 +54,22 @@ def test_bespoke_single_file_tar(tmp_path):
     for file in tmp_path.rglob('*'):
         if file.is_file():
             print(file)
+
+
+def test_tar_into_ocilayout(tmp_path):
+    """Test tar_into_ocilayout() function is able to produce the expected tar (uncompressed) layer blob in the oci-layout
+    """
+    model_path = Path(__file__).parent / "data" / "model.joblib"
+    sha256_path = tmp_path / "blobs" / "sha256"
+    sha256_path.mkdir(parents=True, exist_ok=True)
+    digest = tar_into_ocilayout(tmp_path, model_path) # forcing it into a partial temp directory with blobs subdir for tests
+
+    for file in tmp_path.rglob('*'):
+        if file.is_file():
+            print(file)
+
+    checksum_from_disk = get_file_hash(sha256_path / digest) # read the file
+    assert digest == checksum_from_disk # filename should match its digest
 
 
 def test_bespoke_single_file_gz(tmp_path):
@@ -150,3 +174,4 @@ def test_crawl_ocilayout_manifests():
     assert layer0.digest == "sha256:1933e30a3373776d5c7155591a6dacbc205cf6a2665b6dced682c6d2ea7b000f"
     assert layer0.size == 1949749
     assert layer0.mediaType == "application/vnd.oci.image.layer.v1.tar+gzip"
+
