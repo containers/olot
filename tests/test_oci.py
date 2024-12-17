@@ -12,6 +12,8 @@ from olot.oci.oci_image_manifest import OCIImageManifest
 
 
 def test_non_regression():
+    """Given a known oci-layout, smoke test deserialization of OCI "models" 
+    """
     base_path = Path(__file__).parent / "data" / "ocilayout1"
     with open(base_path / "oci-layout", "r") as f:
         m = OCIImageLayout.model_validate_json(f.read())
@@ -42,4 +44,4 @@ def test_non_regression():
         m = OCIManifestConfig.model_validate_json(f.read())
         print(m)
         print(m.rootfs)
-        print(m.history)    
+        print(m.history)

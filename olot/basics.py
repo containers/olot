@@ -40,14 +40,12 @@ def get_file_hash(path) -> str:
 
 def oci_layers_on_top(ocilayout: Path, model_files):
     check_ocilayout(ocilayout)
+    ocilayout_root_index = read_ocilayout_root_index(ocilayout)
     new_layers = []
     for model in model_files:
         model = Path(model)
         new_layer = tar_into_ocilayout(ocilayout, model)
         new_layers.append(new_layer)
-    ocilayout_root_index = None
-    with open(ocilayout / "index.json", "r") as f:
-        ocilayout_root_index = OCIImageIndex.model_validate_json(f.read())
     ocilayout_indexes: Dict[str, OCIImageIndex] = crawl_ocilayout_indexes(ocilayout, ocilayout_root_index)
     ocilayout_manifests: Dict[str, OCIImageManifest] = crawl_ocilayout_manifests(ocilayout, ocilayout_indexes)
     new_ocilayout_manifests: Dict[str, str] = {}
@@ -186,6 +184,13 @@ def tar_filter_fn(input: tarfile.TarInfo) -> tarfile.TarInfo :
     input.gid = 0
     input.mode = 0o664
     return input
+
+
+def read_ocilayout_root_index(ocilayout: Path) -> OCIImageIndex:
+    ocilayout_root_index = None
+    with open(ocilayout / "index.json", "r") as f:
+        ocilayout_root_index = OCIImageIndex.model_validate_json(f.read())
+    return ocilayout_root_index
 
 
 if __name__ == "__main__":
