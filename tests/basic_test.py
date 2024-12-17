@@ -3,10 +3,11 @@ import os
 from pathlib import Path
 import tarfile
 from typing import Dict
-
 import pytest
+import gzip
+import shutil
 
-from olot.basics import HashingWriter, get_file_hash, check_ocilayout, read_ocilayout_root_index, crawl_ocilayout_indexes, crawl_ocilayout_manifests, compute_hash_of_str, tar_into_ocilayout
+from olot.basics import HashingWriter, get_file_hash, check_ocilayout, read_ocilayout_root_index, crawl_ocilayout_indexes, crawl_ocilayout_manifests, compute_hash_of_str, targz_into_ocilayout, tar_into_ocilayout
 from olot.oci.oci_image_index import OCIImageIndex
 from olot.oci.oci_image_manifest import OCIImageManifest
 
@@ -63,13 +64,19 @@ def test_tar_into_ocilayout(tmp_path):
     sha256_path = tmp_path / "blobs" / "sha256"
     sha256_path.mkdir(parents=True, exist_ok=True)
     digest = tar_into_ocilayout(tmp_path, model_path) # forcing it into a partial temp directory with blobs subdir for tests
-
     for file in tmp_path.rglob('*'):
         if file.is_file():
             print(file)
 
     checksum_from_disk = get_file_hash(sha256_path / digest) # read the file
     assert digest == checksum_from_disk # filename should match its digest
+
+    found = None
+    with tarfile.open(sha256_path / digest, "r") as tar:
+        for tarinfo in tar:
+            if tarinfo.name == "models/model.joblib" and tarinfo.mode == 0o664:
+                found = tarinfo # model.joblib is added in models/ inside modelcar with expected permissions
+    assert found
 
 
 def test_bespoke_single_file_gz(tmp_path):
@@ -110,6 +117,39 @@ def test_bespoke_single_file_gz(tmp_path):
     for file in tmp_path.rglob('*'):
         if file.is_file():
             print(file)
+
+
+def test_targz_into_ocilayout(tmp_path):
+    """Test targz_into_ocilayout() function is able to produce the expected tar.gz layer blob in the oci-layout
+    """
+    model_path = Path(__file__).parent / "data" / "model.joblib"
+    sha256_path = tmp_path / "blobs" / "sha256"
+    sha256_path.mkdir(parents=True, exist_ok=True)
+    digest_tuple = targz_into_ocilayout(tmp_path, model_path) # forcing it into a partial temp directory with blobs subdir for tests
+    digest = digest_tuple[0] # digest of the tar.gz
+    for file in tmp_path.rglob('*'):
+        if file.is_file():
+            print(file)
+
+    checksum_from_disk = get_file_hash(sha256_path / digest) # read the file
+    assert digest == checksum_from_disk # filename should match its digest
+
+    found = None
+    with tarfile.open(sha256_path / digest, "r:gz") as tar:
+        for tarinfo in tar:
+            if tarinfo.name == "models/model.joblib" and tarinfo.mode == 0o664:
+                found = tarinfo # model.joblib is added in models/ inside modelcar with expected permissions
+    assert found
+
+    throwaway_tar = sha256_path / "throwaway.tar"
+    with gzip.open(sha256_path / digest, "rb") as g_in:
+        with open(throwaway_tar, "wb") as f_out:
+            shutil.copyfileobj(g_in, f_out)
+    for file in tmp_path.rglob('*'):
+        if file.is_file():
+            print(file)
+    tar_checksum_from_disk = get_file_hash(throwaway_tar) # compute the digest for the .tar from the .tar.gz
+    assert digest_tuple[1] == tar_checksum_from_disk # digests should match
 
 
 def test_check_ocilayout():

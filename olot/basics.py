@@ -6,6 +6,7 @@ from pprint import pprint
 import tarfile
 from typing import Dict
 import click
+import gzip
 
 from .oci.oci_config import OCIManifestConfig
 
@@ -177,6 +178,22 @@ def tar_into_ocilayout(ocilayout: Path, model: Path):
     os.rename(temp_tar_filename, sha256_path / final_tar_filename)
     click.echo(f"tar file renamed to: {final_tar_filename}")
     return checksum
+
+
+def targz_into_ocilayout(ocilayout: Path, model: Path):
+    sha256_path = ocilayout / "blobs" / "sha256"
+    temp_tar_filename = sha256_path / "temp_layer"
+    with open(temp_tar_filename, "wb") as temp_file:
+        writer = HashingWriter(temp_file)
+        with gzip.GzipFile(fileobj=writer, mode="wb", mtime=0, compresslevel=6) as gz:
+            inner_writer = HashingWriter(gz)
+            with tarfile.open(fileobj=inner_writer, mode="w") as tar:
+                tar.add(model, arcname="/models/"+model.name, filter=tar_filter_fn)
+    checksum = writer.hash_func.hexdigest()
+    tar_checksum = inner_writer.hash_func.hexdigest()
+    final_tar_filename = checksum
+    os.rename(temp_tar_filename, sha256_path / final_tar_filename)
+    return (checksum, tar_checksum)
 
 
 def tar_filter_fn(input: tarfile.TarInfo) -> tarfile.TarInfo :
