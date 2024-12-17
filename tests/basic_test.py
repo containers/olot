@@ -3,10 +3,20 @@ import os
 from pathlib import Path
 import tarfile
 
-
 from olot.basics import HashingWriter, get_file_hash
 
-def test_single_file_tar(tmp_path):
+
+def test_get_file_hash():
+    """As get_file_hash() function is used in other test, making sure it is generating the expected digest for known data
+    """
+    hello_path = Path(__file__).parent / "data" / "hello.md"
+    checksum_from_disk = get_file_hash(hello_path)
+    assert checksum_from_disk == "d91aa8aa7b56706b89e4a9aa27d57f45785082ba40e8a67e58ede1ed5709afd8"
+
+
+def test_bespoke_single_file_tar(tmp_path):
+    """Example bespoke use of HashingWriter for .tar
+    """
     hello_path = Path(__file__).parent / "data" / "hello.md"
     sha256_path = tmp_path / "blobs" / "sha256"
     sha256_path.mkdir(parents=True, exist_ok=True)
@@ -33,7 +43,9 @@ def test_single_file_tar(tmp_path):
             print(file)
 
 
-def test_single_file_gz(tmp_path):
+def test_bespoke_single_file_gz(tmp_path):
+    """Example bespoke use of HashingWriter for .tar.gz
+    """
     hello_path = Path(__file__).parent / "data" / "hello.md"
     sha256_path = tmp_path / "blobs" / "sha256"
     sha256_path.mkdir(parents=True, exist_ok=True)

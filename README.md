@@ -1,4 +1,9 @@
+# oci layers on top
 
+1. use simple tool like `skopeo` ( or `oras cp`, or ...) and produce an [oci image layout](https://github.com/opencontainers/image-spec/blob/main/image-layout.md) of the _base image_ for the [Modelcar](https://kserve.github.io/website/latest/modelserving/storage/oci/#prepare-an-oci-image-with-model-data) (ie base image could be: A. `ubi-micro`, B. `busybox`, or C. even [simple base image for KServe Modelcar](https://github.com/tarilabs/demo20241108-base?tab=readme-ov-file#a-minimal-base-image-for-kserve-modelcarsidecar-puposes-that-does-nothing), etc.)
+2. (this project) use pure python way to add layers of the ML models, and any metadata like ModelCarD
+3. use simple tool from step 1 to push the resulting layout to the remote registry (i.e. `simpletool cp ... quay.io/mmortari/model:car`)
+4. ... you now have a Modelcar inside of your OCI registry that can be used with KServe and more!
 
 ## Dev Notes
 
