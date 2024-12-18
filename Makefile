@@ -11,6 +11,10 @@ build: install
 test:
 	poetry run pytest -s -x -rA
 
+.PHONY: test-e2e-skopeo
+test-e2e-skopeo:
+	poetry run pytest --e2e-skopeo -s -x -rA
+
 .PHONY: lint
 lint: install
 	poetry run ruff check --fix
