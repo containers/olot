@@ -163,6 +163,8 @@ def check_ocilayout(ocilayout: Path):
         m = OCIImageLayout.model_validate_json(f.read())
         if not m.imageLayoutVersion == ImageLayoutVersion.field_1_0_0:
             raise ValueError(f"Unexpected ocilayout in {ocilayout}")
+        else:
+            return True
 
 
 def tar_into_ocilayout(ocilayout: Path, model: Path):

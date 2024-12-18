@@ -1,0 +1,32 @@
+name: E2E
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  e2e-skopeo:
+    name: E2E using CNCF Distribution Registry
+    runs-on: ubuntu-24.04
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+    - name: Install Skopeo
+      run: |
+        sudo apt-get update && sudo apt-get install skopeo
+        skopeo --version
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9' 
+    - name: Install Poetry
+      run: |
+        pipx install poetry
+    - name: Install dependencies
+      run: |
+        make install
+    - name: Run E2E tests
+      run: |
+        make test-e2e-skopeo
