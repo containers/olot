@@ -8,7 +8,7 @@ on:
 
 jobs:
   e2e-skopeo:
-    name: E2E using CNCF Distribution Registry
+    name: E2E using Skopeo
     runs-on: ubuntu-24.04
     steps:
     - name: Checkout repository
@@ -27,6 +27,13 @@ jobs:
     - name: Install dependencies
       run: |
         make install
+    - name: Start Kind Cluster
+      uses: helm/kind-action@v1
+      with:
+        cluster_name: kind
+    - name: Start distribution-registry
+      run: |
+        ./e2e/deploy_distribution_registry.sh
     - name: Run E2E tests
       run: |
         make test-e2e-skopeo
