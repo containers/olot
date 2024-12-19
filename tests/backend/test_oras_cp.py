@@ -4,43 +4,43 @@ import time
 import docker # type: ignore
 from pathlib import Path
 import pytest
-from olot.backend.skopeo import is_skopeo, skopeo_pull, skopeo_push
+from olot.backend.oras_cp import is_oras, oras_pull, oras_push
 from olot.basics import check_ocilayout, oci_layers_on_top, read_ocilayout_root_index
 
-@pytest.mark.e2e_skopeo
-def test_is_skopeo():
-    assert is_skopeo()
+@pytest.mark.e2e_oras
+def test_is_oras():
+    assert is_oras()
 
 
-@pytest.mark.e2e_skopeo
-def test_skopeo_pull(tmp_path):
-    """Test skopeo to pull/dl a known base-image to an oci-layout
+@pytest.mark.e2e_oras
+def test_oras_pull(tmp_path):
+    """Test oras to pull/dl a known base-image to an oci-layout
     """
-    skopeo_pull("quay.io/mmortari/hello-world-wait", tmp_path)
+    oras_pull("quay.io/mmortari/hello-world-wait:latest", tmp_path)
 
     assert check_ocilayout(tmp_path)
 
     mut = read_ocilayout_root_index(tmp_path)
     assert mut.schemaVersion == 2
-    assert len(mut.manifests) == 1
+    assert len(mut.manifests) == 3
     manifest0 = mut.manifests[0]
     assert manifest0.mediaType == "application/vnd.oci.image.index.v1+json"
     assert manifest0.digest == "sha256:d437889e826ecce2116ac711469bd09b1bb3c64d45055cbf23a6f8f3db223b8b"
     assert manifest0.size == 491
 
 
-@pytest.mark.e2e_skopeo
-def test_skopeo_scenario(tmp_path):
-    """Test skopeo with an end-to-end scenario
+@pytest.mark.e2e_oras
+def test_oras_scenario(tmp_path):
+    """Test oras with an end-to-end scenario
     """
-    skopeo_pull("quay.io/mmortari/hello-world-wait", tmp_path)
+    oras_pull("quay.io/mmortari/hello-world-wait:latest", tmp_path)
     model_joblib = Path(__file__).parent / ".." / "data" / "model.joblib"
     model_files = [
         model_joblib,
         Path(__file__).parent / ".." / "data" / "hello.md",
     ]
     oci_layers_on_top(tmp_path, model_files)
-    skopeo_push(tmp_path, "localhost:5001/nstestorg/modelcar")
+    oras_push(tmp_path, "localhost:5001/nstestorg/modelcar:latest")
 
     # show what has been copied in Container Registry
     subprocess.run(["skopeo","list-tags","--tls-verify=false","docker://localhost:5001/nstestorg/modelcar"], check=True)

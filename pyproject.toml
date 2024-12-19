@@ -23,6 +23,7 @@ pytest = "^8.3.4"
 [tool.pytest.ini_options]
 markers = [
     "e2e_skopeo: end-to-end testing with skopeo",
+    "e2e_oras: end-to-end testing with oras",
 ]
 
 
