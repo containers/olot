@@ -15,6 +15,10 @@ test:
 test-e2e-skopeo:
 	poetry run pytest --e2e-skopeo -s -x -rA
 
+.PHONY: test-e2e-oras
+test-e2e-oras:
+	poetry run pytest --e2e-oras -s -x -rA
+
 .PHONY: lint
 lint: install
 	poetry run ruff check --fix
