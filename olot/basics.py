@@ -5,6 +5,7 @@ from pathlib import Path
 from pprint import pprint
 import tarfile
 from typing import Dict, List
+import typing
 import click
 import gzip
 
@@ -39,7 +40,7 @@ def get_file_hash(path) -> str:
     return h.hexdigest()
 
 
-def oci_layers_on_top(ocilayout: Path, model_files: List[os.PathLike], modelcard: os.PathLike = None):
+def oci_layers_on_top(ocilayout: Path, model_files: List[os.PathLike], modelcard: typing.Union[os.PathLike, None] = None):
     check_ocilayout(ocilayout)
     ocilayout_root_index = read_ocilayout_root_index(ocilayout)
     ocilayout_indexes: Dict[str, OCIImageIndex] = crawl_ocilayout_indexes(ocilayout, ocilayout_root_index)
@@ -50,7 +51,7 @@ def oci_layers_on_top(ocilayout: Path, model_files: List[os.PathLike], modelcard
         new_layer = tar_into_ocilayout(ocilayout, model)
         new_layers[new_layer] = new_layer
     if modelcard is not None:
-        modelcard_layer_diffid = targz_into_ocilayout(ocilayout, modelcard)
+        modelcard_layer_diffid = targz_into_ocilayout(ocilayout, Path(modelcard))
         new_layers[modelcard_layer_diffid[0]] = modelcard_layer_diffid[1]
     new_ocilayout_manifests: Dict[str, str] = {}
     for manifest_hash, manifest in ocilayout_manifests.items():
