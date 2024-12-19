@@ -1,0 +1,10 @@
+apiVersion: serving.kserve.io/v1beta1
+kind: InferenceService
+metadata:
+  name: my-inference-service
+spec:
+  predictor:
+    model:
+      modelFormat:
+        name: sklearn
+      storageUri: oci://localhost:5001/nstestorg/modelcar:v1

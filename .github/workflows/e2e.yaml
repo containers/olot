@@ -37,6 +37,35 @@ jobs:
     - name: Run E2E tests
       run: |
         make test-e2e-skopeo
+    - name: Continue E2E by deploying KServe
+      run: |
+        kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.16.1/cert-manager.yaml
+        e2e/repeat.sh kubectl apply --server-side -f https://github.com/kserve/kserve/releases/download/v0.14.0/kserve.yaml
+        e2e/repeat.sh kubectl apply --server-side -f https://github.com/kserve/kserve/releases/download/v0.14.0/kserve-cluster-resources.yaml
+        kubectl patch configmap/inferenceservice-config -n kserve --type=strategic -p '{"data": {"deploy": "{\"defaultDeploymentMode\": \"RawDeployment\"}"}}'
+        e2e/enable-modelcar.sh
+    - name: Load image in KinD for amd64
+      run: |
+        digest=$(skopeo inspect --tls-verify=false --raw docker://localhost:5001/nstestorg/modelcar | jq -r '.manifests[] | select(.platform.architecture == "amd64") | .digest')
+        skopeo copy --src-tls-verify=false docker://localhost:5001/nstestorg/modelcar@$digest docker-daemon:localhost:5001/nstestorg/modelcar:v1
+        kind load docker-image -n "kind" "localhost:5001/nstestorg/modelcar:v1"
+    - name: Apply Isvc using Modelcar # since the enable modelcar restart controller pod, better guard the kubectl apply
+      run: |
+        e2e/repeat.sh kubectl apply -f e2e/isvc-modelcar.yaml
+        kubectl wait --for=condition=Ready isvc/my-inference-service --timeout=240s
+    - name: Basic testing of Isvc that has Modelcar
+      run: |
+        echo "Starting port-forward..."
+        kubectl port-forward svc/my-inference-service-predictor 8080:80 &
+        PID=$!
+        sleep 2
+        echo "I have launched port-forward in background with: $PID."
+        echo "Check that OIP return the expected name"
+        curl -s http://localhost:8080/v2/models | jq -e '.models | index("my-inference-service") != null'
+        echo "Check that OIP produces an Inference Prediction"
+        curl -s -H "Content-Type: application/json" -d @e2e/data/input0.json http://localhost:8080/v2/models/my-inference-service/infer | jq
+        curl -s -H "Content-Type: application/json" -d @e2e/data/input1.json http://localhost:8080/v2/models/my-inference-service/infer | jq
+        curl -s -H "Content-Type: application/json" -d @e2e/data/input4.json http://localhost:8080/v2/models/my-inference-service/infer | jq
   e2e-oras:
     name: E2E using Oras CP
     runs-on: ubuntu-24.04
