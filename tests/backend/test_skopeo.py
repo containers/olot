@@ -71,6 +71,66 @@ def test_skopeo_scenario(tmp_path):
                 break
         except docker.errors.NotFound:
             print("test container terminated")
+            break
+        except Exception as e:
+            print(f"Attempt to terminate {attempt + 1} failed: {e}")
+        attempt += 1
+    if attempt == max_attempts:
+        print("Was unable to terminate the test container")
+    client.images.remove("localhost:5001/nstestorg/modelcar")
+
+
+@pytest.mark.e2e_skopeo
+def test_skopeo_scenario_modelcard(tmp_path):
+    """Test skopeo with an end-to-end scenario with modelcard as separate layer
+    """
+    skopeo_pull("quay.io/mmortari/hello-world-wait", tmp_path)
+    model_joblib = Path(__file__).parent / ".." / "data" / "model.joblib"
+    model_files = [
+        model_joblib,
+        Path(__file__).parent / ".." / "data" / "hello.md",
+    ]
+    modelcard = Path(__file__).parent / ".." / "data" / "README.md"
+    oci_layers_on_top(tmp_path, model_files, modelcard)
+    skopeo_push(tmp_path, "localhost:5001/nstestorg/modelcar")
+
+    # show what has been copied in Container Registry
+    subprocess.run(["skopeo","list-tags","--tls-verify=false","docker://localhost:5001/nstestorg/modelcar"], check=True)
+
+    # copy from Container Registry to Docker daemon for local running the modelcar as-is
+    result = subprocess.run("skopeo inspect --tls-verify=false --raw docker://localhost:5001/nstestorg/modelcar | jq -r '.manifests[] | select(.platform.architecture == \"amd64\") | .digest'", shell=True, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    assert result.returncode == 0
+    digest = result.stdout.strip()
+    print(digest)
+    # use by convention the linux/amd64
+    subprocess.run(["skopeo", "copy", "--src-tls-verify=false", f"docker://localhost:5001/nstestorg/modelcar@{digest}", "docker-daemon:localhost:5001/nstestorg/modelcar:latest"], check=True)
+    client = docker.from_env()
+    container = client.containers.run("localhost:5001/nstestorg/modelcar", detach=True, remove=True)
+    print(container.logs())
+
+    _, stat = container.get_archive('/models/model.joblib')
+    print(str(stat["size"]))
+    # assert the model.joblib from the KServe modelcar is in expected location (above) and expected size
+    assert stat["size"] == os.stat(model_joblib).st_size
+
+    # assert the README.md modelcard is in expected location and expected size
+    _, stat = container.get_archive('/models/README.md')
+    print(str(stat["size"]))
+    assert stat["size"] == os.stat(modelcard).st_size
+
+    container.kill()
+    max_attempts = 5
+    attempt = 0
+    while attempt < max_attempts:
+        try:
+            if client.containers.get(container.id):
+                container.kill()
+                time.sleep(2**attempt)
+            else:
+                break
+        except docker.errors.NotFound:
+            print("test container terminated")
+            break
         except Exception as e:
             print(f"Attempt to terminate {attempt + 1} failed: {e}")
         attempt += 1

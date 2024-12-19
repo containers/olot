@@ -4,7 +4,7 @@ import os
 from pathlib import Path
 from pprint import pprint
 import tarfile
-from typing import Dict
+from typing import Dict, List
 import click
 import gzip
 
@@ -39,16 +39,19 @@ def get_file_hash(path) -> str:
     return h.hexdigest()
 
 
-def oci_layers_on_top(ocilayout: Path, model_files):
+def oci_layers_on_top(ocilayout: Path, model_files: List[os.PathLike], modelcard: os.PathLike = None):
     check_ocilayout(ocilayout)
     ocilayout_root_index = read_ocilayout_root_index(ocilayout)
     ocilayout_indexes: Dict[str, OCIImageIndex] = crawl_ocilayout_indexes(ocilayout, ocilayout_root_index)
     ocilayout_manifests: Dict[str, OCIImageManifest] = crawl_ocilayout_manifests(ocilayout, ocilayout_indexes)
-    new_layers = []
+    new_layers = {} # layer digest : diff_id
     for model in model_files:
         model = Path(model)
         new_layer = tar_into_ocilayout(ocilayout, model)
-        new_layers.append(new_layer)
+        new_layers[new_layer] = new_layer
+    if modelcard is not None:
+        modelcard_layer_diffid = targz_into_ocilayout(ocilayout, modelcard)
+        new_layers[modelcard_layer_diffid[0]] = modelcard_layer_diffid[1]
     new_ocilayout_manifests: Dict[str, str] = {}
     for manifest_hash, manifest in ocilayout_manifests.items():
         print(manifest_hash, manifest.mediaType)
@@ -56,17 +59,20 @@ def oci_layers_on_top(ocilayout: Path, model_files):
         mc = None
         with open(ocilayout / "blobs" / "sha256" / config_sha, "r") as cf:
             mc = OCIManifestConfig.model_validate_json(cf.read())
-        for layer in new_layers:
+        for layer, diffid in new_layers.items():
             size = os.stat(ocilayout / "blobs" / "sha256" / layer).st_size
+            mt = "application/vnd.oci.image.layer.v1.tar" if layer == diffid else "application/vnd.oci.image.layer.v1.tar+gzip"
+            la = None if layer == diffid else {"io.opendatahub.temp.layer.type":"modelcard"}
             cd = ContentDescriptor(
-                mediaType="application/vnd.oci.image.layer.v1.tar",
+                mediaType=mt,
                 digest="sha256:"+layer,
                 size=size,
                 urls=None,
                 data=None,
-                artifactType=None           
+                artifactType=None,
+                annotations=la
             )
-            mc.rootfs.diff_ids.append("sha256:"+layer)
+            mc.rootfs.diff_ids.append("sha256:"+diffid)
             manifest.layers.append(cd)
         # TODO: add to Manifest.config the history/author of this project.
         mc_json = mc.model_dump_json(exclude_none=True)
