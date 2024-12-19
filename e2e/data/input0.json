@@ -1,0 +1,11 @@
+{
+    "inputs": [
+      {
+        "name": "input-0",
+        "shape": [1, 4],
+        "datatype": "FP32",
+        "data": [6.2, 3.4, 5.4, 2.3]
+      }
+    ]
+  }
+  
