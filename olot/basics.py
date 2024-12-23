@@ -4,8 +4,6 @@ from pathlib import Path
 from pprint import pprint
 from typing import Dict, List
 import typing
-import tarfile
-import gzip
 import click
 
 from olot.oci.oci_config import OCIManifestConfig
@@ -15,7 +13,7 @@ from olot.oci.oci_image_manifest import OCIImageManifest, ContentDescriptor
 from olot.oci.oci_image_layout import verify_ocilayout
 from olot.oci.oci_common import MediaTypes
 
-from olot.utils.files import HashingWriter, tar_filter_fn, tarball_from_file, targz_from_file
+from olot.utils.files import tarball_from_file, targz_from_file
 from olot.utils.types import compute_hash_of_str
 
 def oci_layers_on_top(ocilayout: Path, model_files: List[os.PathLike], modelcard: typing.Union[os.PathLike, None] = None):
@@ -139,36 +137,6 @@ def crawl_ocilayout_indexes(ocilayout: Path, ocilayout_root_index: OCIImageIndex
             else:
                 click.echo(f"Found Image Manifest {m.digest} in root index, TODO assuming these are referred through the other indexes")
     return ocilayout_indexes
-
-def tar_into_ocilayout(ocilayout: Path, model: Path):
-    sha256_path = ocilayout / "blobs" / "sha256"
-    temp_tar_filename = sha256_path / "temp_layer"
-    with open(temp_tar_filename, "wb") as temp_file:
-        writer = HashingWriter(temp_file)
-        with tarfile.open(fileobj=writer, mode="w") as tar: # type:ignore
-            tar.add(model, arcname="/models/"+model.name, filter=tar_filter_fn)
-    checksum = writer.hash_func.hexdigest()
-    click.echo(f"digest of the tar file: {checksum}")
-    final_tar_filename = checksum
-    os.rename(temp_tar_filename, sha256_path / final_tar_filename)
-    click.echo(f"tar file renamed to: {final_tar_filename}")
-    return checksum
-
-
-def targz_into_ocilayout(ocilayout: Path, model: Path):
-    sha256_path = ocilayout / "blobs" / "sha256"
-    temp_tar_filename = sha256_path / "temp_layer"
-    with open(temp_tar_filename, "wb") as temp_file:
-        writer = HashingWriter(temp_file)
-        with gzip.GzipFile(fileobj=writer, mode="wb", mtime=0, compresslevel=6) as gz: # type:ignore
-            inner_writer = HashingWriter(gz)
-            with tarfile.open(fileobj=inner_writer, mode="w") as tar: # type:ignore
-                tar.add(model, arcname="/models/"+model.name, filter=tar_filter_fn)
-    checksum = writer.hash_func.hexdigest()
-    tar_checksum = inner_writer.hash_func.hexdigest()
-    final_tar_filename = checksum
-    os.rename(temp_tar_filename, sha256_path / final_tar_filename)
-    return (checksum, tar_checksum)
 
 if __name__ == "__main__":
     print("?")
