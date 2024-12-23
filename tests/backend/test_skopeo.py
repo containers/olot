@@ -5,7 +5,9 @@ import docker # type: ignore
 from pathlib import Path
 import pytest
 from olot.backend.skopeo import is_skopeo, skopeo_pull, skopeo_push
-from olot.basics import check_ocilayout, oci_layers_on_top, read_ocilayout_root_index
+from olot.basics import oci_layers_on_top
+from olot.oci.oci_image_layout import verify_ocilayout
+from olot.oci.oci_image_index import read_ocilayout_root_index
 
 @pytest.mark.e2e_skopeo
 def test_is_skopeo():
@@ -18,7 +20,7 @@ def test_skopeo_pull(tmp_path):
     """
     skopeo_pull("quay.io/mmortari/hello-world-wait", tmp_path)
 
-    assert check_ocilayout(tmp_path)
+    assert verify_ocilayout(tmp_path)
 
     mut = read_ocilayout_root_index(tmp_path)
     assert mut.schemaVersion == 2
@@ -34,11 +36,14 @@ def test_skopeo_scenario(tmp_path):
     """Test skopeo with an end-to-end scenario
     """
     skopeo_pull("quay.io/mmortari/hello-world-wait", tmp_path)
-    model_joblib = Path(__file__).parent / ".." / "data" / "model.joblib"
+
+    model_joblib = Path(__file__).parent / ".." / "data" / "sample-model" / "model.joblib"
+    hello_md = Path(__file__).parent / ".." / "data" / "sample-model" / "hello.md"
     model_files = [
         model_joblib,
-        Path(__file__).parent / ".." / "data" / "hello.md",
+        hello_md,
     ]
+
     oci_layers_on_top(tmp_path, model_files)
     skopeo_push(tmp_path, "localhost:5001/nstestorg/modelcar")
 
@@ -85,12 +90,15 @@ def test_skopeo_scenario_modelcard(tmp_path):
     """Test skopeo with an end-to-end scenario with modelcard as separate layer
     """
     skopeo_pull("quay.io/mmortari/hello-world-wait", tmp_path)
-    model_joblib = Path(__file__).parent / ".." / "data" / "model.joblib"
+
+    model_joblib = Path(__file__).parent / ".." / "data" / "sample-model" / "model.joblib"
+    modelcard = Path(__file__).parent / ".." / "data" / "sample-model" / "README.md"
+    hello_md = Path(__file__).parent / ".." / "data" / "sample-model" / "hello.md"
     model_files = [
         model_joblib,
-        Path(__file__).parent / ".." / "data" / "hello.md",
+        hello_md,
     ]
-    modelcard = Path(__file__).parent / ".." / "data" / "README.md"
+
     oci_layers_on_top(tmp_path, model_files, modelcard)
     skopeo_push(tmp_path, "localhost:5001/nstestorg/modelcar")
 

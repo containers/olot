@@ -1,58 +1,39 @@
 
-import hashlib
 import os
 from pathlib import Path
 from pprint import pprint
-import tarfile
 from typing import Dict, List
 import typing
-import click
+import tarfile
 import gzip
+import click
 
-from .oci.oci_config import OCIManifestConfig
+from olot.oci.oci_config import OCIManifestConfig
 
-from .oci.oci_image_index import OCIImageIndex
-from .oci.oci_image_manifest import OCIImageManifest, ContentDescriptor
+from olot.oci.oci_image_index import OCIImageIndex, read_ocilayout_root_index
+from olot.oci.oci_image_manifest import OCIImageManifest, ContentDescriptor
+from olot.oci.oci_image_layout import verify_ocilayout
+from olot.oci.oci_common import MediaTypes
 
-from .oci.oci_image_layout import ImageLayoutVersion, OCIImageLayout
-
-class HashingWriter:
-    def __init__(self, base_writer, hash_func=None):
-        self.base_writer = base_writer
-        self.hash_func = hash_func or hashlib.sha256()
-
-    def write(self, data: bytes):
-        self.hash_func.update(data)
-        return self.base_writer.write(data)
-    
-    def tell(self):
-        return self.base_writer.tell()
-
-    def close(self):
-        self.base_writer.close()
-
-
-def get_file_hash(path) -> str:
-    h = hashlib.sha256()
-    with open(path, "rb") as f:
-        while chunk := f.read(4096):
-            h.update(chunk)
-    return h.hexdigest()
-
+from olot.utils.files import HashingWriter, tar_filter_fn, tarball_from_file, targz_from_file
+from olot.utils.types import compute_hash_of_str
 
 def oci_layers_on_top(ocilayout: Path, model_files: List[os.PathLike], modelcard: typing.Union[os.PathLike, None] = None):
-    check_ocilayout(ocilayout)
+    verify_ocilayout(ocilayout)
     ocilayout_root_index = read_ocilayout_root_index(ocilayout)
     ocilayout_indexes: Dict[str, OCIImageIndex] = crawl_ocilayout_indexes(ocilayout, ocilayout_root_index)
     ocilayout_manifests: Dict[str, OCIImageManifest] = crawl_ocilayout_manifests(ocilayout, ocilayout_indexes)
     new_layers = {} # layer digest : diff_id
+
+    sha256_path = ocilayout / "blobs" / "sha256"
     for model in model_files:
         model = Path(model)
-        new_layer = tar_into_ocilayout(ocilayout, model)
+        new_layer = tarball_from_file(model, sha256_path)
         new_layers[new_layer] = new_layer
     if modelcard is not None:
-        modelcard_layer_diffid = targz_into_ocilayout(ocilayout, Path(modelcard))
+        modelcard_layer_diffid = targz_from_file(Path(modelcard), sha256_path)
         new_layers[modelcard_layer_diffid[0]] = modelcard_layer_diffid[1]
+
     new_ocilayout_manifests: Dict[str, str] = {}
     for manifest_hash, manifest in ocilayout_manifests.items():
         print(manifest_hash, manifest.mediaType)
@@ -62,7 +43,7 @@ def oci_layers_on_top(ocilayout: Path, model_files: List[os.PathLike], modelcard
             mc = OCIManifestConfig.model_validate_json(cf.read())
         for layer, diffid in new_layers.items():
             size = os.stat(ocilayout / "blobs" / "sha256" / layer).st_size
-            mt = "application/vnd.oci.image.layer.v1.tar" if layer == diffid else "application/vnd.oci.image.layer.v1.tar+gzip"
+            mt = MediaTypes.layer if layer == diffid else MediaTypes.layer_gzip
             la = None if layer == diffid else {"io.opendatahub.temp.layer.type":"modelcard"}
             cd = ContentDescriptor(
                 mediaType=mt,
@@ -112,12 +93,12 @@ def oci_layers_on_top(ocilayout: Path, model_files: List[os.PathLike], modelcard
         new_ocilayout_indexes[index_hash] = index_json_hash
     pprint(new_ocilayout_indexes)
     for entry in ocilayout_root_index.manifests:
-        if entry.mediaType == "application/vnd.oci.image.index.v1+json":
+        if entry.mediaType == MediaTypes.index:
             lookup_new_hash = new_ocilayout_indexes[entry.digest.removeprefix("sha256:")]
             print(f"old index {entry.digest} is now at {lookup_new_hash}")
             entry.digest = "sha256:" + lookup_new_hash
             entry.size = os.stat(ocilayout / "blobs" / "sha256" / lookup_new_hash).st_size
-        elif entry.mediaType == "application/vnd.oci.image.manifest.v1+json":
+        elif entry.mediaType == MediaTypes.manifest:
             lookup_new_hash = new_ocilayout_manifests[entry.digest.removeprefix("sha256:")]
             print(f"old index {entry.digest} is now at {lookup_new_hash}")
             entry.digest = "sha256:" + lookup_new_hash
@@ -128,18 +109,13 @@ def oci_layers_on_top(ocilayout: Path, model_files: List[os.PathLike], modelcard
         root_idx_f.write(ocilayout_root_index.model_dump_json(exclude_none=True))
 
 
-def compute_hash_of_str(content: str) -> str:
-    h = hashlib.sha256()
-    h.update(content.encode())
-    return h.hexdigest()
-
 
 def crawl_ocilayout_manifests(ocilayout: Path, ocilayout_indexes: Dict[str, OCIImageIndex]) -> Dict[str, OCIImageManifest]:
     ocilayout_manifests: Dict[str, OCIImageManifest]  = {}
     for _, mi in ocilayout_indexes.items():
         for m in mi.manifests:
             print(m)
-            if m.mediaType != "application/vnd.oci.image.manifest.v1+json":
+            if m.mediaType != MediaTypes.manifest:
                 raise ValueError("Did not expect something else than Image Manifest in a Index")
             target_hash = m.digest.removeprefix("sha256:")
             print(target_hash)
@@ -152,7 +128,7 @@ def crawl_ocilayout_manifests(ocilayout: Path, ocilayout_indexes: Dict[str, OCII
 def crawl_ocilayout_indexes(ocilayout: Path, ocilayout_root_index: OCIImageIndex) -> Dict[str, OCIImageIndex] :
     ocilayout_indexes: Dict[str, OCIImageIndex] = {}
     for m in ocilayout_root_index.manifests:
-        if m.mediaType == "application/vnd.oci.image.index.v1+json":
+        if m.mediaType == MediaTypes.index:
             target_hash = m.digest.removeprefix("sha256:")
             index_path = ocilayout / "blobs" / "sha256" / target_hash
             with open(index_path, "r") as ip:
@@ -163,16 +139,6 @@ def crawl_ocilayout_indexes(ocilayout: Path, ocilayout_root_index: OCIImageIndex
             else:
                 click.echo(f"Found Image Manifest {m.digest} in root index, TODO assuming these are referred through the other indexes")
     return ocilayout_indexes
-        
-
-def check_ocilayout(ocilayout: Path):
-    with open(ocilayout / "oci-layout", "r") as f:
-        m = OCIImageLayout.model_validate_json(f.read())
-        if not m.imageLayoutVersion == ImageLayoutVersion.field_1_0_0:
-            raise ValueError(f"Unexpected ocilayout in {ocilayout}")
-        else:
-            return True
-
 
 def tar_into_ocilayout(ocilayout: Path, model: Path):
     sha256_path = ocilayout / "blobs" / "sha256"
@@ -203,21 +169,6 @@ def targz_into_ocilayout(ocilayout: Path, model: Path):
     final_tar_filename = checksum
     os.rename(temp_tar_filename, sha256_path / final_tar_filename)
     return (checksum, tar_checksum)
-
-
-def tar_filter_fn(input: tarfile.TarInfo) -> tarfile.TarInfo :
-    input.uid = 0
-    input.gid = 0
-    input.mode = 0o664
-    return input
-
-
-def read_ocilayout_root_index(ocilayout: Path) -> OCIImageIndex:
-    ocilayout_root_index = None
-    with open(ocilayout / "index.json", "r") as f:
-        ocilayout_root_index = OCIImageIndex.model_validate_json(f.read())
-    return ocilayout_root_index
-
 
 if __name__ == "__main__":
     print("?")

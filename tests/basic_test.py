@@ -6,15 +6,19 @@ from typing import Dict
 import pytest
 import shutil
 
-from olot.basics import HashingWriter, get_file_hash, check_ocilayout, read_ocilayout_root_index, crawl_ocilayout_indexes, crawl_ocilayout_manifests, compute_hash_of_str, targz_into_ocilayout, tar_into_ocilayout
-from olot.oci.oci_image_index import OCIImageIndex
+from olot.basics import crawl_ocilayout_indexes, crawl_ocilayout_manifests , targz_into_ocilayout, tar_into_ocilayout
+
+from olot.utils.files import HashingWriter, get_file_hash
+from olot.utils.types import compute_hash_of_str
+from olot.oci.oci_image_layout import verify_ocilayout
+from olot.oci.oci_image_index import OCIImageIndex, read_ocilayout_root_index
 from olot.oci.oci_image_manifest import OCIImageManifest
 
 
 def test_get_file_hash():
     """As get_file_hash() function is used in other test, making sure it is generating the expected digest for known data
     """
-    hello_path = Path(__file__).parent / "data" / "hello.md"
+    hello_path = Path(__file__).parent / "data" / "sample-model" / "hello.md"
     checksum_from_disk = get_file_hash(hello_path)
     assert checksum_from_disk == "d91aa8aa7b56706b89e4a9aa27d57f45785082ba40e8a67e58ede1ed5709afd8"
 
@@ -30,11 +34,11 @@ def test_compute_hash_of_str():
 def test_bespoke_single_file_tar(tmp_path):
     """Example bespoke use of HashingWriter for .tar
     """
-    hello_path = Path(__file__).parent / "data" / "hello.md"
+    hello_path = Path(__file__).parent / "data" / "sample-model" / "hello.md"
     sha256_path = tmp_path / "blobs" / "sha256"
     sha256_path.mkdir(parents=True, exist_ok=True)
     temp_tar_filename = sha256_path / "temp_layer"
-    
+
     with open(temp_tar_filename, "wb") as temp_file:
         writer = HashingWriter(temp_file)
         with tarfile.open(fileobj=writer, mode="w") as tar:
@@ -59,7 +63,7 @@ def test_bespoke_single_file_tar(tmp_path):
 def test_tar_into_ocilayout(tmp_path):
     """Test tar_into_ocilayout() function is able to produce the expected tar (uncompressed) layer blob in the oci-layout
     """
-    model_path = Path(__file__).parent / "data" / "model.joblib"
+    model_path = Path(__file__).parent / "data" / "sample-model" / "model.joblib"
     sha256_path = tmp_path / "blobs" / "sha256"
     sha256_path.mkdir(parents=True, exist_ok=True)
     digest = tar_into_ocilayout(tmp_path, model_path) # forcing it into a partial temp directory with blobs subdir for tests
@@ -81,11 +85,11 @@ def test_tar_into_ocilayout(tmp_path):
 def test_bespoke_single_file_gz(tmp_path):
     """Example bespoke use of HashingWriter for .tar.gz
     """
-    hello_path = Path(__file__).parent / "data" / "hello.md"
+    hello_path = Path(__file__).parent / "data" / "sample-model" / "hello.md"
     sha256_path = tmp_path / "blobs" / "sha256"
     sha256_path.mkdir(parents=True, exist_ok=True)
     temp_tar_filename = sha256_path / "temp_layer.tar.gz"
-    
+
     with open(temp_tar_filename, "wb") as temp_file:
         writer = HashingWriter(temp_file)
         with gzip.GzipFile(fileobj=writer, mode="wb", mtime=0, compresslevel=6) as gz:
@@ -121,7 +125,7 @@ def test_bespoke_single_file_gz(tmp_path):
 def test_targz_into_ocilayout(tmp_path):
     """Test targz_into_ocilayout() function is able to produce the expected tar.gz layer blob in the oci-layout
     """
-    model_path = Path(__file__).parent / "data" / "model.joblib"
+    model_path = Path(__file__).parent / "data" / "sample-model" / "model.joblib"
     sha256_path = tmp_path / "blobs" / "sha256"
     sha256_path.mkdir(parents=True, exist_ok=True)
     digest_tuple = targz_into_ocilayout(tmp_path, model_path) # forcing it into a partial temp directory with blobs subdir for tests
@@ -151,15 +155,15 @@ def test_targz_into_ocilayout(tmp_path):
     assert digest_tuple[1] == tar_checksum_from_disk # digests should match
 
 
-def test_check_ocilayout():
-    """Verify check_ocilayout() fn on known oci-layout and not
+def test_verify_ocilayout():
+    """Test verify_ocilayout() fn on known oci-layout and not
     """
     data_path = Path(__file__).parent / "data"
-    check_ocilayout(data_path / "ocilayout1")
-    check_ocilayout(data_path / "ocilayout2")
-    check_ocilayout(data_path / "ocilayout3")
+    verify_ocilayout(data_path / "ocilayout1")
+    verify_ocilayout(data_path / "ocilayout2")
+    verify_ocilayout(data_path / "ocilayout3")
     with pytest.raises(Exception):
-        check_ocilayout(data_path)
+        verify_ocilayout(data_path)
 
 
 def test_read_ocilayout_root_index():

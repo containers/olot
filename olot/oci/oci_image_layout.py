@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 from enum import Enum
+from pathlib import Path
 
 from pydantic import BaseModel, Field
 
@@ -17,3 +18,11 @@ class OCIImageLayout(BaseModel):
     imageLayoutVersion: ImageLayoutVersion = Field(
         ..., description='version of the OCI Image Layout (in the oci-layout file)'
     )
+
+def verify_ocilayout(ocilayout: Path):
+    with open(ocilayout / "oci-layout", "r") as f:
+        m = OCIImageLayout.model_validate_json(f.read())
+        if not m.imageLayoutVersion == ImageLayoutVersion.field_1_0_0:
+            raise ValueError(f"Unexpected ocilayout in {ocilayout}")
+        else:
+            return True

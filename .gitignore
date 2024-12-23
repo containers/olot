@@ -7,6 +7,8 @@ __pycache__
 tmp
 efi-variable-store
 *.onnx
+.DS_store
+.vscode
 
 # Generated python library wheels
 dist
