@@ -9,6 +9,10 @@ MediaType = Annotated[str, Field(
     )]
 
 class MediaTypes:
+    """Constant values from OCI Image Manifest spec
+
+    See also: https://github.com/opencontainers/image-spec/blob/main/media-types.md
+    """
     manifest: MediaType = "application/vnd.oci.image.manifest.v1+json"
     index: MediaType = "application/vnd.oci.image.index.v1+json"
     layer: MediaType = "application/vnd.oci.image.layer.v1.tar"

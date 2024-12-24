@@ -32,6 +32,8 @@ def tar_filter_fn(input: tarfile.TarInfo) -> tarfile.TarInfo :
     """
     A filter function for modifying file metadata when adding files to a tar archive.
 
+    See also: https://docs.openshift.com/container-platform/4.17/openshift_images/create-images.html#use-uid_create-images
+
     Args:
         input (tarfile.TarInfo): The file metadata object representing a file being added to the tar archive.
 
@@ -39,7 +41,7 @@ def tar_filter_fn(input: tarfile.TarInfo) -> tarfile.TarInfo :
         tarfile.TarInfo: The modified file metadata with the following changes:
             - `uid` set to 0 (root user).
             - `gid` set to 0 (root group).
-            - `mode` set to 0o664 (read/write for owner and group, read-only for others).
+            - `mode` set to 0o664 (read/write for root owner and root group, read-only for others).
     """
     input.uid = 0
     input.gid = 0
