@@ -8,7 +8,8 @@ from typing import Annotated, List, Optional
 
 from pydantic import BaseModel, Field
 
-from .oci_common import MediaType, Digest, Urls, Int64, Base64, Annotations
+from olot.oci.oci_common import MediaType, Digest, Urls
+from olot.utils.types import Int64, Base64, Annotations
 
 # class MediaType(BaseModel):
 #     __root__: constr(

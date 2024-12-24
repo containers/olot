@@ -5,10 +5,12 @@
 from __future__ import annotations
 
 from typing import Annotated, List, Optional
+from pathlib import Path
 
 from pydantic import BaseModel, Field
 
-from .oci_common import MediaType, Digest, Urls, Int64, Base64, Annotations
+from olot.oci.oci_common import MediaType, Digest, Urls
+from olot.utils.types import  Int64, Base64, Annotations
 
 class Platform(BaseModel):
     architecture: str
@@ -56,7 +58,7 @@ class Platform(BaseModel):
 #     __root__: Dict[constr(regex=r'.{1,}'), str]
 # class MapStringString(RootModel[Dict[constr(pattern=r".{1,}"), str]]):
 #     """
-#     A Pydantic RootModel for a dictionary where keys are non-empty strings 
+#     A Pydantic RootModel for a dictionary where keys are non-empty strings
 #     and values are strings.
 #     """
 #     root: Dict[constr(pattern=r".{1,}"), str] = Field(
@@ -190,3 +192,10 @@ class OCIImageIndex(BaseModel):
     subject: Optional[ContentDescriptor] = None
     manifests: List[Manifest]
     annotations: Optional[Annotations] = None
+
+
+def read_ocilayout_root_index(ocilayout: Path) -> OCIImageIndex:
+    ocilayout_root_index = None
+    with open(ocilayout / "index.json", "r") as f:
+        ocilayout_root_index = OCIImageIndex.model_validate_json(f.read())
+    return ocilayout_root_index

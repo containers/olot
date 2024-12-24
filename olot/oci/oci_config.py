@@ -10,7 +10,7 @@ from typing import List, Optional
 
 from pydantic import BaseModel, Field
 
-from .oci_common import MapStringString, MapStringObject
+from olot.utils.types import MapStringString, MapStringObject
 
 
 class Type(Enum):

@@ -1,11 +1,22 @@
 
-from typing import Annotated, Any, Dict, List
+from typing import Annotated, List
 from pydantic import AnyUrl, Field
+
 
 MediaType = Annotated[str, Field(
         ...,
         pattern=r'^[A-Za-z0-9][A-Za-z0-9!#$&^_.+-]{0,126}/[A-Za-z0-9][A-Za-z0-9!#$&^_.+-]{0,126}$'
     )]
+
+class MediaTypes:
+    """Constant values from OCI Image Manifest spec
+
+    See also: https://github.com/opencontainers/image-spec/blob/main/media-types.md
+    """
+    manifest: MediaType = "application/vnd.oci.image.manifest.v1+json"
+    index: MediaType = "application/vnd.oci.image.index.v1+json"
+    layer: MediaType = "application/vnd.oci.image.layer.v1.tar"
+    layer_gzip: MediaType = "application/vnd.oci.image.layer.v1.tar+gzip"
 
 
 Digest = Annotated[str, Field(
@@ -20,22 +31,4 @@ Urls = Annotated[List[AnyUrl],Field(
     )]
 
 
-NonEmptyString = Annotated[str, Field(..., pattern=r".{1,}")]
 
-
-MapStringString = Annotated[Dict[NonEmptyString, str], Field(...)]
-
-
-MapStringObject = Annotated[Dict[NonEmptyString, Any], Field(...)]
-
-
-Int8 = Annotated[int, Field(ge=-128, le=127)]
-
-
-Int64 = Annotated[int, Field(ge=-9223372036854776000, le=9223372036854776000)]
-
-
-Base64 = Annotated[str, Field()]
-
-
-Annotations = Annotated[MapStringString, Field()]
