@@ -27,6 +27,7 @@ class MediaTypes:
         layer: MediaType = "application/vnd.oci.image.layer.v1.tar"
         layer_gzip: MediaType = "application/vnd.oci.image.layer.v1.tar+gzip"
         empty: MediaType = "application/vnd.oci.empty.v1+json"
+        config: MediaType = "application/vnd.oci.image.config.v1+json"
 
 Digest = Annotated[str, Field(
         ...,

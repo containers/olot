@@ -1,13 +1,12 @@
 from pathlib import Path
 import os
-import datetime
 import json
 import argparse
 from typing import List
 
 from olot.oci.oci_image_manifest import create_oci_image_manifest, create_manifest_layers
 from olot.oci.oci_image_layout import create_ocilayout
-from olot.oci.oci_common import Keys, MediaTypes
+from olot.oci.oci_common import MediaTypes, Values
 from olot.oci.oci_image_index import Manifest, create_oci_image_index
 from olot.utils.files import MIMETypes, tarball_from_file, targz_from_file
 from olot.utils.types import compute_hash_of_str
@@ -39,16 +38,12 @@ def create_oci_artifact_from_model(source_dir: Path, dest_dir: Path):
 
     # Create the OCI image manifest
     manifest_layers = create_manifest_layers(model_files, layers)
-    annotations = {
-        Keys.image_created_annotation: datetime.datetime.now().isoformat()
-    }
     artifactType = MIMETypes.mlmodel
     manifest = create_oci_image_manifest(
         artifactType=artifactType,
         layers=manifest_layers,
-        annotations=annotations
     )
-    manifest_json = json.dumps(manifest.model_dump(), indent=4, sort_keys=True)
+    manifest_json = json.dumps(manifest.dict(exclude_none=True), indent=4, sort_keys=True)
     manifest_SHA = compute_hash_of_str(manifest_json)
     with open(sha256_path / manifest_SHA, "w") as f:
         f.write(manifest_json)
@@ -60,22 +55,27 @@ def create_oci_artifact_from_model(source_dir: Path, dest_dir: Path):
                 mediaType=MediaTypes.manifest,
                 size=os.stat(sha256_path / manifest_SHA).st_size,
                 digest=f"sha256:{manifest_SHA}",
-                urls=None,
-                platform=None,
-                annotations=None
+                urls = None,
             )
         ]
     )
-    index_json = json.dumps(index.model_dump(), indent=4, sort_keys=True)
+    index_json = json.dumps(index.dict(exclude_none=True), indent=4, sort_keys=True)
     with open(dest_dir / "index.json", "w") as f:
         f.write(index_json)
-
 
     # Create the OCI-layout file
     oci_layout = create_ocilayout()
     with open(dest_dir / "oci-layout", "w") as f:
         f.write(json.dumps(oci_layout.model_dump(), indent=4, sort_keys=True))
 
+    # Create empty config file with digest as name
+    empty_config: dict[str, str] = {}
+    empty_digest_split = Values.empty_digest.split(":")
+    if len(empty_digest_split) == 2:
+        with open(dest_dir / "blobs" / "sha256" / empty_digest_split[1], "w") as f:
+            f.write(json.dumps(empty_config))
+    else:
+        raise ValueError(f"Invalid empty_digest format: {Values.empty_digest}")
 
 def create_blobs(model_files: List[Path], dest_dir: Path):
     """

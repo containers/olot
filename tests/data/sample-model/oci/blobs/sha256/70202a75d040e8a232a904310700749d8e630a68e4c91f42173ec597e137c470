@@ -1,0 +1,37 @@
+{
+    "artifactType": "application/x-mlmodel",
+    "config": {
+        "data": "e30=",
+        "digest": "sha256:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+        "mediaType": "application/vnd.oci.empty.v1+json",
+        "size": 2
+    },
+    "layers": [
+        {
+            "annotations": {
+                "org.opencontainers.image.title": "model.joblib"
+            },
+            "digest": "sha256:80da85cc1eb84676a6adbc8b495381463f1f2302425a96033dc51a81e17cb0bb",
+            "mediaType": "application/octet-stream",
+            "size": 3299
+        },
+        {
+            "annotations": {
+                "org.opencontainers.image.title": "README.md"
+            },
+            "digest": "sha256:69c637f302502a950e7a5072f78032ce593d73797845751debed90558638d5a1",
+            "mediaType": "text/plain",
+            "size": 6625
+        },
+        {
+            "annotations": {
+                "org.opencontainers.image.title": "hello.md"
+            },
+            "digest": "sha256:06cd6f2c31be8e4d5a1cea6d6c1e7401cc0128c21439456eaf964180b00dfda1",
+            "mediaType": "text/plain",
+            "size": 72
+        }
+    ],
+    "mediaType": "application/vnd.oci.image.manifest.v1+json",
+    "schemaVersion": 2
+}

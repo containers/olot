@@ -4,14 +4,14 @@
 
 from __future__ import annotations
 
-from typing import Annotated, List, Optional
+from typing import Annotated, List, Optional, Dict
 import os
 import subprocess
 from pathlib import Path
 
 from pydantic import BaseModel, Field
 
-from olot.oci.oci_common import Digest, Urls, Keys, Values, MediaTypes, MediaType
+from olot.oci.oci_common import Urls, Keys, Values, MediaTypes, MediaType
 from olot.utils.types import Int64, Base64, Annotations
 from olot.utils.files import MIMETypes
 
@@ -96,24 +96,27 @@ from olot.utils.files import MIMETypes
 
 class ContentDescriptor(BaseModel):
     mediaType: MediaType = Field(
-        ..., description='the mediatype of the referenced object'
+        ..., description="The media type of the referenced object"
     )
-    size: Int64 = Field(..., description='the size in bytes of the referenced object')
-    digest: Digest = Field(
-        ...,
-        description="the cryptographic checksum digest of the object, in the pattern '<algorithm>:<encoded>'",
+    size: Int64 = Field(
+        ..., description="The size in bytes of the referenced object"
+    )
+    digest: str = Field(
+        ..., description="The cryptographic checksum digest of the object, in the pattern '<algorithm>:<encoded>'"
     )
     urls: Optional[Urls] = Field(
-        None, description='a list of urls from which this object may be downloaded'
+        None, description="A list of URLs from which this object may be downloaded"
     )
     data: Optional[Base64] = Field(
-        None, description='an embedding of the targeted content (base64 encoded)'
+        None, description="An embedding of the targeted content (base64 encoded)"
     )
     artifactType: Optional[MediaType] = Field(
-        None, description='the IANA media type of this artifact'
+        None, description="The IANA media type of this artifact"
     )
-    annotations: Optional[Annotations] = None
+    annotations: Optional[Dict[str, str]] = None
 
+    class Config:
+        exclude_none = True
 
 class OCIImageManifest(BaseModel):
     schemaVersion: Annotated[int, Field(ge=2, le=2)] = Field(
@@ -193,12 +196,12 @@ def create_manifest_layers(files: List[Path], blob_layers: dict) -> List[Content
             mediaType=get_file_media_type(file),
             size=os.stat(file).st_size,
             digest=f"sha256:{file_digest}",
-            urls=None,
-            data=None,
-            artifactType=None,
             annotations= {
                 Keys.image_title_annotation: os.path.basename(file)
-            }
+            },
+            urls = None,
+            data = None,
+            artifactType = None,
         )
         layers.append(layer)
     return layers
