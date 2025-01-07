@@ -1,26 +1,32 @@
 
 from typing import Annotated, List
 from pydantic import AnyUrl, Field
-from pathlib import Path
-import os
 
-from olot.utils.files import tarball_from_file, targz_from_file
 
 MediaType = Annotated[str, Field(
         ...,
         pattern=r'^[A-Za-z0-9][A-Za-z0-9!#$&^_.+-]{0,126}/[A-Za-z0-9][A-Za-z0-9!#$&^_.+-]{0,126}$'
     )]
 
+
+class Keys:
+        image_title_annotation = "org.opencontainers.image.title"
+        image_created_annotation = "org.opencontainers.image.created"
+
+class Values:
+        empty_digest = "sha256:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+        empty_data = "e30="
+
 class MediaTypes:
-    """Constant values from OCI Image Manifest spec
+        """Constant values from OCI Image Manifest spec
 
-    See also: https://github.com/opencontainers/image-spec/blob/main/media-types.md
-    """
-    manifest: MediaType = "application/vnd.oci.image.manifest.v1+json"
-    index: MediaType = "application/vnd.oci.image.index.v1+json"
-    layer: MediaType = "application/vnd.oci.image.layer.v1.tar"
-    layer_gzip: MediaType = "application/vnd.oci.image.layer.v1.tar+gzip"
-
+        See also: https://github.com/opencontainers/image-spec/blob/main/media-types.md
+        """
+        manifest: MediaType = "application/vnd.oci.image.manifest.v1+json"
+        index: MediaType = "application/vnd.oci.image.index.v1+json"
+        layer: MediaType = "application/vnd.oci.image.layer.v1.tar"
+        layer_gzip: MediaType = "application/vnd.oci.image.layer.v1.tar+gzip"
+        empty: MediaType = "application/vnd.oci.empty.v1+json"
 
 Digest = Annotated[str, Field(
         ...,
@@ -34,26 +40,3 @@ Urls = Annotated[List[AnyUrl],Field(
     )]
 
 
-def create_blobs(source_dir: Path, oci_dir: Path):
-    if not source_dir.exists():
-        raise ValueError(f"Input directory '{source_dir}' does not exist.")
-
-    sha256_path = oci_dir / "blobs" / "sha256"
-    os.makedirs(sha256_path, exist_ok=True)
-
-    layers = {} # layer digest : diff_id
-
-    # assume flat structure for source_dir for now
-    # TODO: handle subdirectories appropriately
-    model_files = [source_dir / Path(f) for f in os.listdir(source_dir) if os.path.isfile(os.path.join(source_dir, f))]
-
-    for model_file in model_files:
-
-        # handle model card file if encountered - assume README.md is the modelcard
-        if os.path.basename(os.path.normpath(model_file)).endswith("README.md"):
-            postcomp_chksum, precomp_chksum = targz_from_file(model_file, sha256_path)
-            layers[postcomp_chksum] = precomp_chksum
-        else:
-            checksum = tarball_from_file(model_file, sha256_path)
-            layers[checksum] = checksum
-    return layers
