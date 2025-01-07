@@ -19,10 +19,16 @@ class OCIImageLayout(BaseModel):
         ..., description='version of the OCI Image Layout (in the oci-layout file)'
     )
 
+    class Config:
+        use_enum_values = True
+
 def verify_ocilayout(ocilayout: Path):
     with open(ocilayout / "oci-layout", "r") as f:
         m = OCIImageLayout.model_validate_json(f.read())
-        if not m.imageLayoutVersion == ImageLayoutVersion.field_1_0_0:
+        if not m.imageLayoutVersion == ImageLayoutVersion.field_1_0_0.value:
             raise ValueError(f"Unexpected ocilayout in {ocilayout}")
         else:
             return True
+
+def create_ocilayout() -> OCIImageLayout:
+    return OCIImageLayout(imageLayoutVersion=ImageLayoutVersion.field_1_0_0)
