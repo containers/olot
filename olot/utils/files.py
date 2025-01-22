@@ -74,7 +74,7 @@ def tarball_from_file(file_path: Path, dest: Path) -> str:
     try:
         with open(temp_dest, "wb") as temp_file:
             writer = HashingWriter(temp_file)
-            with tarfile.open(fileobj=writer, mode="w") as tar: # type:ignore
+            with tarfile.open(fileobj=writer, mode="w") as tar: # type: ignore[call-overload]
                 tar.add(file_path, arcname="/models/"+file_path.name, filter=tar_filter_fn)
         checksum = writer.hash_func.hexdigest()
         os.rename(temp_dest, dest / checksum)
@@ -114,9 +114,9 @@ def targz_from_file(file_path: Path, dest: Path) -> tuple[str, str]:
     try:
         with open(temp_dest, "wb") as temp_file:
             writer = HashingWriter(temp_file)
-            with gzip.GzipFile(fileobj=writer, mode="wb", mtime=0, compresslevel=6) as gz: # type:ignore
+            with gzip.GzipFile(fileobj=writer, mode="wb", mtime=0, compresslevel=6) as gz: # type: ignore[call-overload]
                 inner_writer = HashingWriter(gz)
-                with tarfile.open(fileobj=inner_writer, mode="w") as tar: # type:ignore
+                with tarfile.open(fileobj=inner_writer, mode="w") as tar: # type: ignore[call-overload]
                     tar.add(file_path, arcname="/models/"+file_path.name, filter=tar_filter_fn)
         precompress_checksum = inner_writer.hash_func.hexdigest()
         postcompress_checksum = writer.hash_func.hexdigest()
