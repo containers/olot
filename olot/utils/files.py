@@ -19,6 +19,9 @@ class HashingWriter:
     def close(self):
         self.base_writer.close()
 
+class MIMETypes:
+    mlmodel = "application/x-mlmodel"
+    octet_stream = "application/octet-stream"
 
 def get_file_hash(path) -> str:
     h = hashlib.sha256()

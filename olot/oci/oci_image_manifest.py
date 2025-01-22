@@ -5,11 +5,15 @@
 from __future__ import annotations
 
 from typing import Annotated, List, Optional
+import os
+import subprocess
+from pathlib import Path
 
 from pydantic import BaseModel, Field
 
-from olot.oci.oci_common import MediaType, Digest, Urls
+from olot.oci.oci_common import Digest, Urls, Keys, Values, MediaTypes, MediaType
 from olot.utils.types import Int64, Base64, Annotations
+from olot.utils.files import MIMETypes
 
 # class MediaType(BaseModel):
 #     __root__: constr(
@@ -126,3 +130,75 @@ class OCIImageManifest(BaseModel):
     subject: Optional[ContentDescriptor] = None
     layers: List[ContentDescriptor] = Field(..., min_length=1)
     annotations: Optional[Annotations] = None
+
+def empty_config() -> ContentDescriptor:
+    return ContentDescriptor(
+        mediaType=MediaTypes.empty,
+        size=2,
+        digest=Values.empty_digest,
+        data=Values.empty_data,
+        urls=None,
+        artifactType=None,
+    )
+
+def create_oci_image_manifest(
+    schemaVersion: int = 2,
+    mediaType: Optional[str] = MediaTypes.manifest,
+    artifactType: Optional[str] = None,
+    config: ContentDescriptor = empty_config(),
+    subject: Optional[ContentDescriptor] = None,
+    layers: List[ContentDescriptor] = [],
+    annotations: Optional[Annotations] = None,
+) -> OCIImageManifest:
+    return OCIImageManifest(
+        schemaVersion=schemaVersion,
+        mediaType=mediaType,
+        artifactType=artifactType,
+        config=config,
+        subject=subject,
+        layers=layers,
+        annotations=annotations,
+    )
+
+def get_file_media_type(file_path: os.PathLike) -> str:
+    """
+    Get the MIME type of a file using the `file` command.
+    """
+    try:
+        result = subprocess.run(['file', '--mime-type', '-b', file_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+        mime_type = result.stdout.decode('utf-8').strip()
+        return mime_type
+    except subprocess.CalledProcessError as e:
+        print(f"Error occurred while getting MIME type: {e}")
+        return MIMETypes.octet_stream
+    except Exception as e:
+        print(f"Unexpected error: {e}")
+        return MIMETypes.octet_stream
+
+
+def create_manifest_layers(files: List[Path], blob_layers: dict) -> List[ContentDescriptor]:
+    """
+    Create a list of ContentDescriptor objects representing the layers of an OCI image manifest.
+
+    Args:
+        files (List[os.PathLike]): A list of file paths to be used as layers in the manifest.
+    Returns:
+        List[ContentDescriptor]: A list of ContentDescriptor objects representing the layers of the manifest
+    """
+    layers: List[ContentDescriptor] = []
+    for file in files:
+        precomp, postcomp = blob_layers[os.path.basename(file)]
+        file_digest = postcomp if postcomp != "" else precomp
+        layer = ContentDescriptor(
+            mediaType=get_file_media_type(file),
+            size=os.stat(file).st_size,
+            digest=f"sha256:{file_digest}",
+            urls=None,
+            data=None,
+            artifactType=None,
+            annotations= {
+                Keys.image_title_annotation: os.path.basename(file)
+            }
+        )
+        layers.append(layer)
+    return layers
