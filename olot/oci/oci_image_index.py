@@ -9,7 +9,7 @@ from pathlib import Path
 
 from pydantic import BaseModel, Field
 
-from olot.oci.oci_common import MediaType, Digest, Urls
+from olot.oci.oci_common import MediaTypes, MediaType, Digest, Urls
 from olot.utils.types import  Int64, Base64, Annotations
 
 class Platform(BaseModel):
@@ -199,3 +199,24 @@ def read_ocilayout_root_index(ocilayout: Path) -> OCIImageIndex:
     with open(ocilayout / "index.json", "r") as f:
         ocilayout_root_index = OCIImageIndex.model_validate_json(f.read())
     return ocilayout_root_index
+
+
+def create_oci_image_index(
+    schemaVersion: int = 2,
+    mediaType: Optional[str] = MediaTypes.index,
+    artifactType: Optional[str] = None,
+    subject: Optional[ContentDescriptor] = None,
+    manifests: List[Manifest] = [],
+    annotations: Optional[Annotations] = None
+) -> OCIImageIndex:
+    """
+    Create an OCI image index object.
+    """
+    return OCIImageIndex(
+        schemaVersion=schemaVersion,
+        mediaType=mediaType,
+        artifactType=artifactType,
+        subject=subject,
+        manifests=manifests,
+        annotations=annotations
+    )

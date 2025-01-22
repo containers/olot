@@ -6,11 +6,20 @@ import argparse
 from typing import List
 
 from olot.oci.oci_image_manifest import create_oci_image_manifest, create_manifest_layers
-from olot.oci.oci_common import Keys
+from olot.oci.oci_image_layout import create_ocilayout
+from olot.oci.oci_common import Keys, MediaTypes
+from olot.oci.oci_image_index import Manifest, create_oci_image_index
 from olot.utils.files import MIMETypes, tarball_from_file, targz_from_file
 from olot.utils.types import compute_hash_of_str
 
 def create_oci_artifact_from_model(source_dir: Path, dest_dir: Path):
+    """
+    Create an OCI artifact from a model directory.
+
+    Args:
+        source_dir: The directory containing the model files.
+        dest_dir: The directory to write the OCI artifact to. If None, a directory named 'oci' will be created in the source directory.
+    """
     if not source_dir.exists():
         raise NotADirectoryError(f"Input directory '{source_dir}' does not exist.")
 
@@ -39,10 +48,33 @@ def create_oci_artifact_from_model(source_dir: Path, dest_dir: Path):
         layers=manifest_layers,
         annotations=annotations
     )
-    manifest_json = json.dumps(manifest.dict(), indent=4, sort_keys=True)
+    manifest_json = json.dumps(manifest.model_dump(), indent=4, sort_keys=True)
     manifest_SHA = compute_hash_of_str(manifest_json)
     with open(sha256_path / manifest_SHA, "w") as f:
         f.write(manifest_json)
+
+    # Create the OCI image index
+    index = create_oci_image_index(
+        manifests = [
+            Manifest(
+                mediaType=MediaTypes.manifest,
+                size=os.stat(sha256_path / manifest_SHA).st_size,
+                digest=f"sha256:{manifest_SHA}",
+                urls=None,
+                platform=None,
+                annotations=None
+            )
+        ]
+    )
+    index_json = json.dumps(index.model_dump(), indent=4, sort_keys=True)
+    with open(dest_dir / "index.json", "w") as f:
+        f.write(index_json)
+
+
+    # Create the OCI-layout file
+    oci_layout = create_ocilayout()
+    with open(dest_dir / "oci-layout", "w") as f:
+        f.write(json.dumps(oci_layout.model_dump(), indent=4, sort_keys=True))
 
 
 def create_blobs(model_files: List[Path], dest_dir: Path):
@@ -72,4 +104,5 @@ def main():
     source_dir = Path(args.source_dir)
     create_oci_artifact_from_model(source_dir, None)
 
-
+if __name__ == "__main__":
+    main()
