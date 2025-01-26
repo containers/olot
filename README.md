@@ -13,7 +13,7 @@ rm -rf download && skopeo copy --multi-arch all docker://quay.io/mmortari/hello-
 # oras copy --to-oci-layout quay.io/mmortari/hello-world-wait:latest ./download:latest
 # chmod +w download/blobs/sha256/*
 
-poetry run olot download tests/data/model.joblib README.md
+poetry run olot download tests/data/sample-model/model.joblib tests/data/sample-model/README.md
 
 skopeo copy --multi-arch all oci:download:latest docker://quay.io/mmortari/demo20241208:latest
 ```
@@ -21,13 +21,20 @@ skopeo copy --multi-arch all oci:download:latest docker://quay.io/mmortari/demo2
 demo
 
 ```
-podman run -it quay.io/mmortari/demo20241208 /bin/sh
+podman run --rm -it quay.io/mmortari/demo20241208 /bin/sh
+Trying to pull quay.io/mmortari/demo20241208:latest...
+Getting image source signatures
+Copying blob sha256:6163eebc9af40cdf3451c0de779eccf4a919d56cd3dd22b57bbcaafb5b07d349
+Copying blob sha256:1933e30a3373776d5c7155591a6dacbc205cf6a2665b6dced682c6d2ea7b000f
+Copying blob sha256:3dc1903f1fc892d372d30bc05ed7c01dd6aceff05a1917eb2fc5618bfd6ef350
+Copying config sha256:37ac52c72d78301fce323e652c00326faee7975837f291acef2ce56a262fc53d
+Writing manifest to image destination
 / # ls -la /models/
-total 8
-drwxr-xr-x    1 root     root            23 Dec  8 21:41 .
-dr-xr-xr-x    1 root     root            63 Dec  8 21:42 ..
--rw-r--r--    1 501      20             389 Dec  8 21:34 README.md
--rw-r--r--    1 501      20            3299 Dec  8 15:37 model.joblib
+total 12
+drwxr-xr-x    1 root     root            23 Jan 23 16:40 .
+dr-xr-xr-x    1 root     root            63 Jan 23 16:40 ..
+-rw-rw-r--    1 root     root          6625 Dec 24 09:24 README.md
+-rw-rw-r--    1 root     root          3299 Dec 24 09:24 model.joblib
 ```
 
 or even
