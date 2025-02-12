@@ -47,7 +47,7 @@ def test_crawl_ocilayout_manifests():
     assert layer0.mediaType == "application/vnd.oci.image.layer.v1.tar+gzip"
 
 
-def test_crawl_ocilayout_blobs_to_extract(tmp_path: Path) -> str:
+def test_crawl_ocilayout_blobs_to_extract(tmp_path: Path):
     """Crawl ocilayout4 which is a ModelCar containing one ML file "model.joblib" and one text file "README.md" as ModelCarD.
     Verify extraction from ModelCar produces those 2 assets.
     """
