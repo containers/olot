@@ -80,8 +80,8 @@ from olot.oci_artifact import oci_layers_on_top
 from olot.backend.skopeo import skopeo_pull, skopeo_push
 
 model_dir = 'download'
-oci_registry_source=quay.io/mmortari/hello-world-wait:latest
-oci_registry_destination=quay.io/mmortari/demo20241208:latest
+oci_registry_source='quay.io/mmortari/hello-world-wait:latest'
+oci_registry_destination='quay.io/mmortari/demo20241208:latest'
 
 model_files = [
     'tests/data/sample-model/model.joblib',
