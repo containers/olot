@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Dict
 
-from olot.basics import crawl_ocilayout_indexes, crawl_ocilayout_manifests
+from olot.basics import crawl_ocilayout_blobs_to_extract, crawl_ocilayout_indexes, crawl_ocilayout_manifests
 
 from olot.oci.oci_image_index import OCIImageIndex, read_ocilayout_root_index
 from olot.oci.oci_image_manifest import OCIImageManifest
@@ -46,3 +46,20 @@ def test_crawl_ocilayout_manifests():
     assert layer0.size == 1949749
     assert layer0.mediaType == "application/vnd.oci.image.layer.v1.tar+gzip"
 
+
+def test_crawl_ocilayout_blobs_to_extract(tmp_path: Path):
+    """Crawl ocilayout4 which is a ModelCar containing one ML file "model.joblib" and one text file "README.md" as ModelCarD.
+    Verify extraction from ModelCar produces those 2 assets.
+    """
+    ocilayout4_path = Path(__file__).parent / "data" / "ocilayout4"
+    mut = crawl_ocilayout_blobs_to_extract(ocilayout4_path, tmp_path)
+
+    assert len(mut) == 2
+    assert "models/README.md" in mut
+    assert "models/model.joblib" in mut
+
+    assert len([x for x in tmp_path.rglob("*") if x.is_file()]) == 2
+    modelcard = tmp_path / "models" / "README.md"
+    assert modelcard.exists()
+    modelfile = tmp_path / "models" / "model.joblib"
+    assert modelfile.exists()

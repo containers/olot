@@ -2,6 +2,7 @@
 import os
 from pathlib import Path
 from pprint import pprint
+import tarfile
 from typing import Dict, List
 import typing
 import click
@@ -137,6 +138,49 @@ def crawl_ocilayout_indexes(ocilayout: Path, ocilayout_root_index: OCIImageIndex
             else:
                 click.echo(f"Found Image Manifest {m.digest} in root index, TODO assuming these are referred through the other indexes")
     return ocilayout_indexes
+
+
+def crawl_ocilayout_blobs_to_extract(ocilayout: Path, 
+                                     output_path: Path,
+                                     tar_filter_dir: str = "/models") -> List[str]:
+    """
+    Extract from OCI Image/ModelCar only the contents from a specific directory.
+
+    Args:
+        ocilayout: The directory containing the oci-layout of the OCI Image/ModelCar.
+        output_path: The directory where to extract the ML model assets from the ModelCar to.
+        tar_filter_dir: The subdirectory in the ModelCar to extract, defaults to `"/models"`.
+
+    Returns:
+        The list of extracted ML contents from the OCI Image/ModelCar.
+    """
+    extracted: List[str] = []
+    tar_filter_dir= tar_filter_dir.lstrip("/")
+    blobs_path = ocilayout / "blobs" / "sha256"
+    if not os.path.exists(output_path):
+        os.makedirs(output_path)
+    verify_ocilayout(ocilayout)
+    ocilayout_root_index = read_ocilayout_root_index(ocilayout)
+    if len(ocilayout_root_index.manifests) != 1:
+        raise ValueError("TODO the root index has more than one manifest, expected single ModelCar")
+    manifest0 = ocilayout_root_index.manifests[0]
+    if manifest0.mediaType != MediaTypes.manifest:
+        raise ValueError("Can only extract from ModelCar Image manifests")
+    target_hash = manifest0.digest.removeprefix("sha256:")
+    manifest_path = blobs_path / target_hash
+    with open(manifest_path, "r") as ip:
+        image_manifest = OCIImageManifest.model_validate_json(ip.read())
+    for layer in image_manifest.layers:
+        if layer.mediaType == MediaTypes.layer or layer.mediaType == MediaTypes.layer_gzip:
+            target_hash = layer.digest.removeprefix("sha256:")
+            manifest_path = blobs_path / target_hash
+            with tarfile.open(manifest_path, "r:*") as tar:
+                for member in tar.getmembers():
+                    if member.isfile() and member.name.startswith(tar_filter_dir):
+                        tar.extract(member, path=output_path)
+                        extracted.append(member.name)
+    return extracted
+
 
 if __name__ == "__main__":
     print("?")
