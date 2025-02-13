@@ -1,68 +1,99 @@
 # oci layers on top
 
+`olot` is a python-based tool to append layers (files) onto an OCI-compatible image. It is meant to be used in conjunction with command-line based tools to fetch and upload these images. Tools such as [skopeo](https://github.com/containers/skopeo) or [oras](https://github.com/oras-project/oras). It can be used either as a CLI tool, or via standard python interface. The package is published to [pypy](https://pypi.org/p/olot).
+
+## Usage
+
+### As a CLI
+
 1. use simple tool like `skopeo` ( or `oras cp`, or ...) and produce an [oci image layout](https://github.com/opencontainers/image-spec/blob/main/image-layout.md) of the _base image_ for the [Modelcar](https://kserve.github.io/website/latest/modelserving/storage/oci/#prepare-an-oci-image-with-model-data) (ie base image could be: A. `ubi-micro`, B. `busybox`, or C. even [simple base image for KServe Modelcar](https://github.com/tarilabs/demo20241108-base?tab=readme-ov-file#a-minimal-base-image-for-kserve-modelcarsidecar-puposes-that-does-nothing), etc.)
 2. (this project) use pure python way to add layers of the ML models, and any metadata like ModelCarD
 3. use simple tool from step 1 to push the resulting layout to the remote registry (i.e. `simpletool cp ... quay.io/mmortari/model:car`)
 4. ... you now have a Modelcar inside of your OCI registry that can be used with KServe and more!
 
-## Dev Notes
+```sh
+IMAGE_DIR=download
+OCI_REGISTRY_SOURCE=quay.io/mmortari/hello-world-wait:latest
+OCI_REGISTRY_DESTINATION=quay.io/mmortari/demo20241208:latest
+rm -rf $IMAGE_DIR
+
+# Downloads the image `/quay.io/mmortari/hello-world-wait:latest` to the folder `download` with tag `latest`
+skopeo copy --multi-arch all docker://${OCI_REGISTRY_SOURCE} oci:${IMAGE_DIR}:latest
+
+# If using oras, you will need to also need to add write permissions
+# oras copy --to-oci-layout $OCI_REGISTRY_SOURCE ./${IMAGE_DIR}:latest
+# chmod +w ${IMAGE_DIR}/blobs/sha256/*
+
+# Appends to the image found in `download` the files `model.joblib` and `README.md`
+poetry run olot $IMAGE_DIR tests/data/sample-model/model.joblib tests/data/sample-model/README.md
+
+# Pushes the (updated) image found in `download` folder to the registry `quay.io/mmortari/demo20241208` with tag `latest`
+skopeo copy --multi-arch all oci:${IMAGE_DIR}:latest docker://${OCI_REGISTRY_DESTINATION}
+
+# If using oras
+# oras cp --from-oci-layout ./${IMAGE_DIR}:latest $OCI_REGISTRY_DESTINATION
+```
+
+You can now test the image to validate the files exist in it
+
+
+```bash
+podman run --rm -it $OCI_REGISTRY_DESTINATION ls -la /models/
+```
+
+Expected Output:
 
 ```sh
-rm -rf download && skopeo copy --multi-arch all docker://quay.io/mmortari/hello-world-wait:latest oci:download:latest
-
-# oras copy --to-oci-layout quay.io/mmortari/hello-world-wait:latest ./download:latest
-# chmod +w download/blobs/sha256/*
-
-poetry run olot download tests/data/sample-model/model.joblib tests/data/sample-model/README.md
-
-skopeo copy --multi-arch all oci:download:latest docker://quay.io/mmortari/demo20241208:latest
-```
-
-demo
-
-```
-podman run --rm -it quay.io/mmortari/demo20241208 /bin/sh
-Trying to pull quay.io/mmortari/demo20241208:latest...
-Getting image source signatures
-Copying blob sha256:6163eebc9af40cdf3451c0de779eccf4a919d56cd3dd22b57bbcaafb5b07d349
-Copying blob sha256:1933e30a3373776d5c7155591a6dacbc205cf6a2665b6dced682c6d2ea7b000f
-Copying blob sha256:3dc1903f1fc892d372d30bc05ed7c01dd6aceff05a1917eb2fc5618bfd6ef350
-Copying config sha256:37ac52c72d78301fce323e652c00326faee7975837f291acef2ce56a262fc53d
-Writing manifest to image destination
-/ # ls -la /models/
-total 12
-drwxr-xr-x    1 root     root            23 Jan 23 16:40 .
-dr-xr-xr-x    1 root     root            63 Jan 23 16:40 ..
+Unable to find image 'quay.io/mmortari/demo20241208:latest' locally
+latest: Pulling from mmortari/demo20241208
+6163eebc9af4: Download complete 
+1933e30a3373: Download complete 
+3dc1903f1fc8: Download complete 
+Digest: sha256:6effaec653c4ba4711c8bda5d18211014016e543e6657eb36ced186fb9aed9e4
+Status: Downloaded newer image for quay.io/mmortari/demo20241208:latest
+total 20
+drwxr-xr-x    1 root     root          4096 Feb 13 15:17 .
+drwxr-xr-x    1 root     root          4096 Feb 13 15:17 ..
 -rw-rw-r--    1 root     root          6625 Dec 24 09:24 README.md
 -rw-rw-r--    1 root     root          3299 Dec 24 09:24 model.joblib
 ```
 
-or even
-
-```sh
-oras cp --from-oci-layout ./download:latest quay.io/mmortari/demo20241208:latest
-```
-
-demo
-
-```
-podman run --rm -it quay.io/mmortari/demo20241208 /bin/sh
-Trying to pull quay.io/mmortari/demo20241208:latest...
-Getting image source signatures
-Copying blob sha256:a29b139a2e0d0eb615fd1e2d51475834a404f1e2f440784079c7184bdc241289
-Copying blob sha256:1933e30a3373776d5c7155591a6dacbc205cf6a2665b6dced682c6d2ea7b000f
-Copying blob sha256:3afebe9995515e0bd99890d996ad1aa6340cb9f0f125185011e90882d14b5431
-Copying config sha256:f445c8c153c95885e059a66366922c7d5173da0b5c4ceef6f61f005b58b4a0c1
-Writing manifest to image destination
-/ # ls -la /models
-total 8
-drwxr-xr-x    1 root     root            23 Dec  8 21:56 .
-dr-xr-xr-x    1 root     root            63 Dec  8 21:56 ..
--rw-r--r--    1 501      20             389 Dec  8 21:34 README.md
--rw-r--r--    1 501      20            3299 Dec  8 15:37 model.joblib
-/ # exit
-```
+Cleanup your local image
 
 ```sh
 podman image rm quay.io/mmortari/demo20241208:latest
+```
+
+### As a Python Package
+
+Install the package
+
+```sh
+pip install olot
+# poetry add olot
+```
+
+Import and add layers onto a locally available model (using skopeo):
+
+```python
+from olot.oci_artifact import oci_layers_on_top
+from olot.backend.skopeo import skopeo_pull, skopeo_push
+
+model_dir = 'download'
+oci_registry_source='quay.io/mmortari/hello-world-wait:latest'
+oci_registry_destination='quay.io/mmortari/demo20241208:latest'
+
+model_files = [
+    'tests/data/sample-model/model.joblib',
+    'tests/data/sample-model/README.md',
+]
+
+# Download the model
+skopeo_pull(oci_registry_source, model_dir)
+
+# Add the layers
+oci_layers_on_top(model_dir, model_files)
+
+# Push the model
+skopeo_push(model_dir, oci_registry_destination)
 ```
