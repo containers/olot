@@ -142,7 +142,7 @@ def crawl_ocilayout_indexes(ocilayout: Path, ocilayout_root_index: OCIImageIndex
 
 def crawl_ocilayout_blobs_to_extract(ocilayout: Path, 
                                      output_path: Path,
-                                     tar_filter_dir: str = "/models"):
+                                     tar_filter_dir: str = "/models") -> List[str]:
     """
     Extract from OCI Image/ModelCar only the contents from a specific directory.
 
@@ -150,7 +150,11 @@ def crawl_ocilayout_blobs_to_extract(ocilayout: Path,
         ocilayout: The directory containing the oci-layout of the OCI Image/ModelCar.
         output_path: The directory where to extract the ML model assets from the ModelCar to.
         tar_filter_dir: The subdirectory in the ModelCar to extract, defaults to `"/models"`.
+
+    Returns:
+        The list of extracted ML contents from the OCI Image/ModelCar.
     """
+    extracted: List[str] = []
     tar_filter_dir= tar_filter_dir.lstrip("/")
     blobs_path = ocilayout / "blobs" / "sha256"
     if not os.path.exists(output_path):
@@ -174,7 +178,8 @@ def crawl_ocilayout_blobs_to_extract(ocilayout: Path,
                 for member in tar.getmembers():
                     if member.isfile() and member.name.startswith(tar_filter_dir):
                         tar.extract(member, path=output_path)
-                        print(f"Extracted: {member.name}")
+                        extracted.append(member.name)
+    return extracted
 
 
 if __name__ == "__main__":

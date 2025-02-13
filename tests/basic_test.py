@@ -52,7 +52,11 @@ def test_crawl_ocilayout_blobs_to_extract(tmp_path: Path):
     Verify extraction from ModelCar produces those 2 assets.
     """
     ocilayout4_path = Path(__file__).parent / "data" / "ocilayout4"
-    crawl_ocilayout_blobs_to_extract(ocilayout4_path, tmp_path)
+    mut = crawl_ocilayout_blobs_to_extract(ocilayout4_path, tmp_path)
+
+    assert len(mut) == 2
+    assert "models/README.md" in mut
+    assert "models/model.joblib" in mut
 
     assert len([x for x in tmp_path.rglob("*") if x.is_file()]) == 2
     modelcard = tmp_path / "models" / "README.md"
