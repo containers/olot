@@ -25,7 +25,7 @@ skopeo copy --multi-arch all docker://${OCI_REGISTRY_SOURCE} oci:${IMAGE_DIR}:la
 # chmod +w ${IMAGE_DIR}/blobs/sha256/*
 
 # Appends to the image found in `download` the files `model.joblib` and as ModelCarD the `README.md`
-poetry run olot $IMAGE_DIR tests/data/sample-model/model.joblib --modelcard tests/data/sample-model/README.md
+poetry run olot $IMAGE_DIR --modelcard tests/data/sample-model/README.md tests/data/sample-model/model.joblib
 
 # Pushes the (updated) image found in `download` folder to the registry `quay.io/mmortari/demo20241208` with tag `latest`
 skopeo copy --multi-arch all oci:${IMAGE_DIR}:latest docker://${OCI_REGISTRY_DESTINATION}

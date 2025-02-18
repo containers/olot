@@ -51,7 +51,7 @@ jobs:
         OCI_REGISTRY_DESTINATION=localhost:5001/nstestorg/modelcar
         rm -rf $IMAGE_DIR
         skopeo copy --multi-arch all docker://${OCI_REGISTRY_SOURCE} oci:${IMAGE_DIR}:latest
-        poetry run olot $IMAGE_DIR tests/data/sample-model/model.joblib --modelcard tests/data/sample-model/README.md
+        poetry run olot $IMAGE_DIR --modelcard tests/data/sample-model/README.md tests/data/sample-model/model.joblib
         # copy modelcar from oci-layout to the local docker registry
         skopeo copy --tls-verify=false --multi-arch all oci:${IMAGE_DIR}:latest docker://${OCI_REGISTRY_DESTINATION}
         # make sure the annotation is present
