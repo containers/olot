@@ -16,4 +16,4 @@ def skopeo_pull(base_image: str, dest: typing.Union[str, os.PathLike]):
 def skopeo_push(src: typing.Union[str, os.PathLike], oci_ref: str):
     if isinstance(src, os.PathLike):
         src = str(src)
-    return subprocess.run(["skopeo", "copy", "--multi-arch", "all", "--dest-tls-verify=false", "--dest-no-creds", "oci:"+src+":latest", "docker://"+oci_ref], check=True)
+    return subprocess.run(["skopeo", "copy", "--multi-arch", "all", "--dest-tls-verify=false", "oci:"+src+":latest", "docker://"+oci_ref], check=True)
