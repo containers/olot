@@ -24,8 +24,8 @@ skopeo copy --multi-arch all docker://${OCI_REGISTRY_SOURCE} oci:${IMAGE_DIR}:la
 # oras copy --to-oci-layout $OCI_REGISTRY_SOURCE ./${IMAGE_DIR}:latest
 # chmod +w ${IMAGE_DIR}/blobs/sha256/*
 
-# Appends to the image found in `download` the files `model.joblib` and `README.md`
-poetry run olot $IMAGE_DIR tests/data/sample-model/model.joblib tests/data/sample-model/README.md
+# Appends to the image found in `download` the files `model.joblib` and as ModelCarD the `README.md`
+poetry run olot $IMAGE_DIR --modelcard tests/data/sample-model/README.md tests/data/sample-model/model.joblib
 
 # Pushes the (updated) image found in `download` folder to the registry `quay.io/mmortari/demo20241208` with tag `latest`
 skopeo copy --multi-arch all oci:${IMAGE_DIR}:latest docker://${OCI_REGISTRY_DESTINATION}
@@ -63,6 +63,10 @@ Cleanup your local image
 ```sh
 podman image rm quay.io/mmortari/demo20241208:latest
 ```
+
+### Dev notes
+
+If copying the resulting image to local filesystem oci-layout using skopeo, make sure to enable `--dest-oci-accept-uncompressed-layers` option.
 
 ### As a Python Package
 

@@ -68,7 +68,9 @@ def oci_layers_on_top(ocilayout: typing.Union[str, os.PathLike], model_files: Li
         config_sha = mc_json_hash
         manifest.config.digest = "sha256:" + config_sha
         manifest.config.size = os.stat(ocilayout / "blobs" / "sha256" / config_sha).st_size
-        manifest.annotations["io.opendatahub.temp.author"] = "olot" # type:ignore
+        if manifest.annotations is None:
+            manifest.annotations = {}
+        manifest.annotations["io.opendatahub.temp.author"] = "olot"
         manifest_json = manifest.model_dump_json(exclude_none=True)
         with open(ocilayout / "blobs" / "sha256" / manifest_hash, "w") as cf:
             cf.write(manifest_json)
