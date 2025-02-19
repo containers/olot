@@ -1,8 +1,12 @@
 import hashlib
+import logging
+import shutil
 import tarfile
 from pathlib import Path
 import gzip
 import os
+
+logger = logging.getLogger(__name__)
 
 class HashingWriter:
     def __init__(self, base_writer, hash_func=None):
@@ -129,3 +133,14 @@ def targz_from_file(file_path: Path, dest: Path) -> tuple[str, str]:
         raise tarfile.TarError(f"Error creating tarball: {e}") from e
     except OSError as e:
         raise OSError(f"File operation failed: {e}") from e
+
+
+def handle_remove(path: os.PathLike):
+    if not isinstance(path, Path):
+        path = Path(path)
+    if path.is_symlink():
+        logger.warning("removing %s which is a symlink", path)
+    if path.is_dir():
+        shutil.rmtree(path)
+    else:
+        os.remove(path)

@@ -1,9 +1,10 @@
 
+import logging
 import os
 from pathlib import Path
 from pprint import pprint
 import tarfile
-from typing import Dict, List
+from typing import Dict, List, Sequence
 import typing
 import click
 
@@ -14,12 +15,30 @@ from olot.oci.oci_image_manifest import OCIImageManifest, ContentDescriptor
 from olot.oci.oci_image_layout import verify_ocilayout
 from olot.oci.oci_common import MediaTypes
 
-from olot.utils.files import tarball_from_file, targz_from_file
+from olot.utils.files import handle_remove, tarball_from_file, targz_from_file
 from olot.utils.types import compute_hash_of_str
 
-def oci_layers_on_top(ocilayout: typing.Union[str, os.PathLike], model_files: List[os.PathLike], modelcard: typing.Union[os.PathLike, None] = None):
+logger = logging.getLogger(__name__)
+
+def oci_layers_on_top(
+        ocilayout: typing.Union[str, os.PathLike],
+        model_files: Sequence[os.PathLike],
+        modelcard: typing.Union[os.PathLike, None] = None,
+        *,
+        remove: bool = False):
+    """
+    Add contents to an oci-layout directory as new blob layers
+
+    Args:
+        ocilayout: The oci-layout directory of the base image.
+        model_files: PathLike array to be added as new blob layers.
+        modelcard: PathLike of the README.md of the ModelCarD, will be added as the last layer with compression and annotations.
+        remove: whether to remove the original content files after having added the layers, default: False.
+    """
     if not isinstance(ocilayout, Path):
         ocilayout = Path(ocilayout)
+    if remove:
+        logger.info("Invoked with 'remove' to delete original contents after adding as a blob layer.")
 
     verify_ocilayout(ocilayout)
     ocilayout_root_index = read_ocilayout_root_index(ocilayout)
@@ -32,9 +51,13 @@ def oci_layers_on_top(ocilayout: typing.Union[str, os.PathLike], model_files: Li
         model = Path(model)
         new_layer = tarball_from_file(model, sha256_path)
         new_layers[new_layer] = new_layer
+        if remove:
+            handle_remove(model)
     if modelcard is not None:
         modelcard_layer_diffid = targz_from_file(Path(modelcard), sha256_path)
         new_layers[modelcard_layer_diffid[0]] = modelcard_layer_diffid[1]
+        if remove:
+            handle_remove(modelcard)
 
     new_ocilayout_manifests: Dict[str, str] = {}
     for manifest_hash, manifest in ocilayout_manifests.items():
