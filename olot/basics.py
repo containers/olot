@@ -17,7 +17,10 @@ from olot.oci.oci_common import MediaTypes
 from olot.utils.files import tarball_from_file, targz_from_file
 from olot.utils.types import compute_hash_of_str
 
-def oci_layers_on_top(ocilayout: Path, model_files: List[os.PathLike], modelcard: typing.Union[os.PathLike, None] = None):
+def oci_layers_on_top(ocilayout: typing.Union[str, os.PathLike], model_files: List[os.PathLike], modelcard: typing.Union[os.PathLike, None] = None):
+    if not isinstance(ocilayout, Path):
+        ocilayout = Path(ocilayout)
+
     verify_ocilayout(ocilayout)
     ocilayout_root_index = read_ocilayout_root_index(ocilayout)
     ocilayout_indexes: Dict[str, OCIImageIndex] = crawl_ocilayout_indexes(ocilayout, ocilayout_root_index)

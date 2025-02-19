@@ -76,7 +76,7 @@ pip install olot
 Import and add layers onto a locally available model (using skopeo):
 
 ```python
-from olot.oci_artifact import oci_layers_on_top
+from olot.basic import oci_layers_on_top
 from olot.backend.skopeo import skopeo_pull, skopeo_push
 
 model_dir = 'download'
