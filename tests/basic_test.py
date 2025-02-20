@@ -88,7 +88,7 @@ def test_oci_layers_on_top_with_remove(tmp_path: Path):
     modelcard = target_model / "README.md"
     assert modelcard.exists()
 
-    oci_layers_on_top(target_ocilayout, models, modelcard, remove=True)
+    oci_layers_on_top(target_ocilayout, models, modelcard, remove_originals=True)
 
     for model in models:
         assert not model.exists()

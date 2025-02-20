@@ -25,7 +25,7 @@ def oci_layers_on_top(
         model_files: Sequence[os.PathLike],
         modelcard: typing.Union[os.PathLike, None] = None,
         *,
-        remove: bool = False):
+        remove_originals: bool = False):
     """
     Add contents to an oci-layout directory as new blob layers
 
@@ -37,7 +37,7 @@ def oci_layers_on_top(
     """
     if not isinstance(ocilayout, Path):
         ocilayout = Path(ocilayout)
-    if remove:
+    if remove_originals:
         logger.info("Invoked with 'remove' to delete original contents after adding as a blob layer.")
 
     verify_ocilayout(ocilayout)
@@ -51,12 +51,12 @@ def oci_layers_on_top(
         model = Path(model)
         new_layer = tarball_from_file(model, sha256_path)
         new_layers[new_layer] = new_layer
-        if remove:
+        if remove_originals:
             handle_remove(model)
     if modelcard is not None:
         modelcard_layer_diffid = targz_from_file(Path(modelcard), sha256_path)
         new_layers[modelcard_layer_diffid[0]] = modelcard_layer_diffid[1]
-        if remove:
+        if remove_originals:
             handle_remove(modelcard)
 
     new_ocilayout_manifests: Dict[str, str] = {}
