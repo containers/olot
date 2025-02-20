@@ -1,5 +1,7 @@
+import logging
 import pytest
 
+logging.basicConfig(level=logging.INFO)
 
 def pytest_collection_modifyitems(config, items):
     for item in items: 

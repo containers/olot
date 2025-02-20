@@ -1,10 +1,13 @@
+import os
 from pathlib import Path
+import shutil
 from typing import Dict
 
-from olot.basics import crawl_ocilayout_blobs_to_extract, crawl_ocilayout_indexes, crawl_ocilayout_manifests
+from olot.basics import crawl_ocilayout_blobs_to_extract, crawl_ocilayout_indexes, crawl_ocilayout_manifests, oci_layers_on_top
 
 from olot.oci.oci_image_index import OCIImageIndex, read_ocilayout_root_index
 from olot.oci.oci_image_manifest import OCIImageManifest
+from tests.common import sample_model_path, test_data_path
 
 
 def test_crawl_ocilayout_indexes():
@@ -63,3 +66,30 @@ def test_crawl_ocilayout_blobs_to_extract(tmp_path: Path):
     assert modelcard.exists()
     modelfile = tmp_path / "models" / "model.joblib"
     assert modelfile.exists()
+
+
+def test_oci_layers_on_top_with_remove(tmp_path: Path):
+    """put oci_layers_on_top under test with 'remove' option
+    """
+    test_sample_model = sample_model_path()
+    test_ocilayout2 = test_data_path() / "ocilayout2"
+    target_ocilayout = tmp_path / "myocilayout"
+    shutil.copytree(test_ocilayout2, target_ocilayout)
+    target_model = tmp_path / "models"
+    shutil.copytree(test_sample_model, target_model)
+    print(os.listdir(target_model))
+
+    models = [
+        target_model / "model.joblib",
+        target_model / "hello.md"
+    ]
+    for model in models:
+        assert model.exists()
+    modelcard = target_model / "README.md"
+    assert modelcard.exists()
+
+    oci_layers_on_top(target_ocilayout, models, modelcard, remove_originals=True)
+
+    for model in models:
+        assert not model.exists()
+    assert not modelcard.exists()
