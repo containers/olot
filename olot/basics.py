@@ -41,9 +41,9 @@ def oci_layers_on_top(
         logger.info("Invoked with 'remove' to delete original contents after adding as a blob layer.")
 
     verify_ocilayout(ocilayout)
-    ocilayout_root_index = read_ocilayout_root_index(ocilayout)
+    ocilayout_root_index: OCIImageIndex = read_ocilayout_root_index(ocilayout)
     ocilayout_indexes: Dict[str, OCIImageIndex] = crawl_ocilayout_indexes(ocilayout, ocilayout_root_index)
-    ocilayout_manifests: Dict[str, OCIImageManifest] = crawl_ocilayout_manifests(ocilayout, ocilayout_indexes)
+    ocilayout_manifests: Dict[str, OCIImageManifest] = crawl_ocilayout_manifests(ocilayout, ocilayout_indexes, ocilayout_root_index)
     new_layers = {} # layer digest : diff_id
 
     sha256_path = ocilayout / "blobs" / "sha256"
@@ -137,15 +137,26 @@ def oci_layers_on_top(
 
 
 
-def crawl_ocilayout_manifests(ocilayout: Path, ocilayout_indexes: Dict[str, OCIImageIndex]) -> Dict[str, OCIImageManifest]:
+def crawl_ocilayout_manifests(ocilayout: Path, ocilayout_indexes: Dict[str, OCIImageIndex], ocilayout_root_index: OCIImageIndex = None) -> Dict[str, OCIImageManifest]:
+    """crawl Manifests from referred OCI Index(es) and Manifests in the root index of the oci-layout
+    """
     ocilayout_manifests: Dict[str, OCIImageManifest]  = {}
     for _, mi in ocilayout_indexes.items():
         for m in mi.manifests:
-            print(m)
+            logger.debug("Parsing manifest %s", m)
             if m.mediaType != MediaTypes.manifest:
                 raise ValueError("Did not expect something else than Image Manifest in a Index")
             target_hash = m.digest.removeprefix("sha256:")
-            print(target_hash)
+            logger.debug("target_hash %s", target_hash)
+            manifest_path = ocilayout / "blobs" / "sha256" / target_hash
+            with open(manifest_path, "r") as ip:
+                ocilayout_manifests[target_hash] = OCIImageManifest.model_validate_json(ip.read())
+    if ocilayout_root_index is None:
+        return ocilayout_manifests # return early
+    for m in ocilayout_root_index.manifests:
+        if m.mediaType == MediaTypes.manifest:
+            target_hash = m.digest.removeprefix("sha256:")
+            logger.debug("Lookup remainder manifest from ocilayout_root_index having target_hash %s", target_hash)
             manifest_path = ocilayout / "blobs" / "sha256" / target_hash
             with open(manifest_path, "r") as ip:
                 ocilayout_manifests[target_hash] = OCIImageManifest.model_validate_json(ip.read())
@@ -160,11 +171,6 @@ def crawl_ocilayout_indexes(ocilayout: Path, ocilayout_root_index: OCIImageIndex
             index_path = ocilayout / "blobs" / "sha256" / target_hash
             with open(index_path, "r") as ip:
                 ocilayout_indexes[target_hash] = OCIImageIndex.model_validate_json(ip.read())
-        else:
-            if len(ocilayout_indexes) == 0:
-                raise ValueError("TODO the root index has Image manifest")
-            else:
-                click.echo(f"Found Image Manifest {m.digest} in root index, TODO assuming these are referred through the other indexes")
     return ocilayout_indexes
 
 
