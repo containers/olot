@@ -6,7 +6,6 @@ from pprint import pprint
 import tarfile
 from typing import Dict, List, Sequence
 import typing
-import click
 
 from olot.oci.oci_config import OCIManifestConfig
 
@@ -137,7 +136,7 @@ def oci_layers_on_top(
 
 
 
-def crawl_ocilayout_manifests(ocilayout: Path, ocilayout_indexes: Dict[str, OCIImageIndex], ocilayout_root_index: OCIImageIndex = None) -> Dict[str, OCIImageManifest]:
+def crawl_ocilayout_manifests(ocilayout: Path, ocilayout_indexes: Dict[str, OCIImageIndex], ocilayout_root_index: typing.Union[OCIImageIndex, None] = None) -> Dict[str, OCIImageManifest]:
     """crawl Manifests from referred OCI Index(es) and Manifests in the root index of the oci-layout
     """
     ocilayout_manifests: Dict[str, OCIImageManifest]  = {}
