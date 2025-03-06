@@ -37,7 +37,7 @@ def test_crawl_ocilayout_manifests():
     ocilayout3_path = Path(__file__).parent / "data" / "ocilayout3"
     ocilayout_root_index = read_ocilayout_root_index(ocilayout3_path)
     ocilayout_indexes: Dict[str, OCIImageIndex] = crawl_ocilayout_indexes(ocilayout3_path, ocilayout_root_index)
-    mut: Dict[str, OCIImageManifest] = crawl_ocilayout_manifests(ocilayout3_path, ocilayout_indexes)
+    mut: Dict[str, OCIImageManifest] = crawl_ocilayout_manifests(ocilayout3_path, ocilayout_indexes, ocilayout_root_index)
 
     assert len(mut.keys()) == 2
     assert "c23ed8b7e30f5edd2417e1dd99fedad4445f3e835edb58760b2f83f2c0517878" in mut.keys()
@@ -93,3 +93,33 @@ def test_oci_layers_on_top_with_remove(tmp_path: Path):
     for model in models:
         assert not model.exists()
     assert not modelcard.exists()
+
+
+def test_oci_layers_on_top_single_manifest(tmp_path: Path):
+    """check oci_layers_on_top with an oci-layout directory containing a single manifest
+    """
+    test_sample_model = sample_model_path()
+    test_ocilayout5 = test_data_path() / "ocilayout5"
+    target_ocilayout = tmp_path / "myocilayout"
+    shutil.copytree(test_ocilayout5, target_ocilayout)
+    target_model = tmp_path / "models"
+    shutil.copytree(test_sample_model, target_model)
+    print(os.listdir(target_model))
+
+    models = [
+        target_model / "model.joblib",
+        target_model / "hello.md"
+    ]
+    for model in models:
+        assert model.exists()
+    modelcard = target_model / "README.md"
+    assert modelcard.exists()
+
+    oci_layers_on_top(target_ocilayout, models, modelcard)
+
+    ocilayout_root_index: OCIImageIndex = read_ocilayout_root_index(target_ocilayout)
+    ocilayout_indexes: Dict[str, OCIImageIndex] = crawl_ocilayout_indexes(target_ocilayout, ocilayout_root_index)
+    ocilayout_manifests: Dict[str, OCIImageManifest] = crawl_ocilayout_manifests(target_ocilayout, ocilayout_indexes, ocilayout_root_index)
+    assert len(ocilayout_manifests) == 1
+    manifest0: OCIImageManifest = next(iter(ocilayout_manifests.values()))
+    assert len(manifest0.layers) == 1 + len(models) + 1 # original value (only 1 layer in original oci-layout) + now added model files + now added modelcarD
