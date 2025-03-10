@@ -29,7 +29,7 @@ markers = [
 
 [tool.poetry.group.dev.dependencies]
 datamodel-code-generator = ">=0.26.3,<0.29.0"
-ruff = "^0.6.1"
+ruff = ">=0.6.1,<0.10.0"
 mypy = "^1.11.1"
 docker = "^7.1.0"
 
