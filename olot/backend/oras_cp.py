@@ -18,7 +18,7 @@ def oras_pull(base_image: str, dest: typing.Union[str, os.PathLike]):
 
 
 
-def oras_push(src: typing.Union[str, os.PathLike], oci_ref: str):
+def oras_push(src: typing.Union[str, os.PathLike], oci_ref: str, params: typing.Sequence[str]=[]):
     if isinstance(src, os.PathLike):
         src = str(src)
-    return subprocess.run(["oras", "copy", "--from-oci-layout", "--to-plain-http", src+":latest", oci_ref], check=True)
+    return subprocess.run(["oras", "copy", "--from-oci-layout", *params, src+":latest", oci_ref], check=True)

@@ -45,7 +45,7 @@ def test_oras_scenario(tmp_path):
     ]
 
     oci_layers_on_top(tmp_path, model_files)
-    oras_push(tmp_path, "localhost:5001/nstestorg/modelcar:latest")
+    oras_push(tmp_path, "localhost:5001/nstestorg/modelcar:latest", ["--to-plain-http"])
 
     # show what has been copied in Container Registry
     subprocess.run(["skopeo","list-tags","--tls-verify=false","docker://localhost:5001/nstestorg/modelcar"], check=True)
@@ -100,7 +100,7 @@ def test_oras_scenario_modelcard(tmp_path):
     ]
 
     oci_layers_on_top(tmp_path, model_files, modelcard)
-    oras_push(tmp_path, "localhost:5001/nstestorg/modelcar:latest")
+    oras_push(tmp_path, "localhost:5001/nstestorg/modelcar:latest", ["--to-plain-http"])
 
     # show what has been copied in Container Registry
     subprocess.run(["skopeo","list-tags","--tls-verify=false","docker://localhost:5001/nstestorg/modelcar"], check=True)
