@@ -68,7 +68,7 @@ def oci_layers_on_top(
         for layer, diffid in new_layers.items():
             size = os.stat(ocilayout / "blobs" / "sha256" / layer).st_size
             mt = MediaTypes.layer if layer == diffid else MediaTypes.layer_gzip
-            la = None if layer == diffid else {"io.opendatahub.layer.type":"modelcard"}
+            la = None if layer == diffid else {"io.opendatahub.modelcar.layer.type":"modelcard"}
             cd = ContentDescriptor(
                 mediaType=mt,
                 digest="sha256:"+layer,
