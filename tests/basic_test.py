@@ -95,6 +95,35 @@ def test_oci_layers_on_top_with_remove(tmp_path: Path):
     assert not modelcard.exists()
 
 
+def test_oci_layers_on_top_without_remove(tmp_path: Path):
+    """put oci_layers_on_top under test withOUT 'remove' option
+    complementary to test_oci_layers_on_top_with_remove,
+    used for future and non-regression of "API contract"
+    """
+    test_sample_model = sample_model_path()
+    test_ocilayout2 = test_data_path() / "ocilayout2"
+    target_ocilayout = tmp_path / "myocilayout"
+    shutil.copytree(test_ocilayout2, target_ocilayout)
+    target_model = tmp_path / "models"
+    shutil.copytree(test_sample_model, target_model)
+    print(os.listdir(target_model))
+
+    models = [
+        target_model / "model.joblib",
+        target_model / "hello.md"
+    ]
+    for model in models:
+        assert model.exists()
+    modelcard = target_model / "README.md"
+    assert modelcard.exists()
+
+    oci_layers_on_top(target_ocilayout, models, modelcard) # remove_originals=False, ie the default
+
+    for model in models:
+        assert model.exists()
+    assert modelcard.exists()
+
+
 def test_oci_layers_on_top_single_manifest(tmp_path: Path):
     """check oci_layers_on_top with an oci-layout directory containing a single manifest
     """
