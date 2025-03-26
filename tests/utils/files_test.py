@@ -80,7 +80,8 @@ def test_tarball_from_file(tmp_path):
     model_path = sample_model_path() / "model.joblib"
     write_dest = sha256_path(tmp_path)
     write_dest.mkdir(parents=True, exist_ok=True)
-    digest = tarball_from_file(model_path, write_dest) # forcing it into a partial temp directory with blobs subdir for tests
+    tbf = tarball_from_file(model_path, write_dest) # forcing it into a partial temp directory with blobs subdir for tests
+    digest = tbf.layer_digest
     for file in tmp_path.rglob('*'):
         if file.is_file():
             print(file)
@@ -102,7 +103,9 @@ def test_targz_from_file(tmp_path):
     model_path = sample_model_path() / "model.joblib"
     write_dest = sha256_path(tmp_path)
     write_dest.mkdir(parents=True, exist_ok=True)
-    postcomp_chksum, precomp_chskum = targz_from_file(model_path, write_dest) # forcing it into a partial temp directory with blobs subdir for tests
+    tgz = targz_from_file(model_path, write_dest) # forcing it into a partial temp directory with blobs subdir for tests
+    postcomp_chksum = tgz.layer_digest
+    precomp_chskum = tgz.diff_id
 
     for file in tmp_path.rglob('*'):
         if file.is_file():

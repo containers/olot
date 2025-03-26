@@ -124,8 +124,10 @@ def test_oci_layers_on_top_without_remove(tmp_path: Path):
     assert modelcard.exists()
 
 
-def test_oci_layers_on_top_single_manifest(tmp_path: Path):
+def test_oci_layers_on_top_single_manifest_and_check_annotations(tmp_path: Path):
     """check oci_layers_on_top with an oci-layout directory containing a single manifest
+    and check annotations on layers, including the layer containing the ModelCarD to contain
+    the expected annotations
     """
     test_sample_model = sample_model_path()
     test_ocilayout5 = test_data_path() / "ocilayout5"
@@ -152,3 +154,16 @@ def test_oci_layers_on_top_single_manifest(tmp_path: Path):
     assert len(ocilayout_manifests) == 1
     manifest0: OCIImageManifest = next(iter(ocilayout_manifests.values()))
     assert len(manifest0.layers) == 1 + len(models) + 1 # original value (only 1 layer in original oci-layout) + now added model files + now added modelcarD
+
+    for layer in manifest0.layers[1:]: # skip original first layer in original oci-layout
+        assert layer.annotations
+        assert "org.opencontainers.image.title" in layer.annotations.keys()
+    assert manifest0.layers[1].annotations
+    assert manifest0.layers[1].annotations["org.opencontainers.image.title"] == "model.joblib"
+    assert manifest0.layers[2].annotations
+    assert manifest0.layers[2].annotations["org.opencontainers.image.title"] == "hello.md"
+    # identify the ModelCarD layer by means of annotation(s)
+    assert manifest0.layers[3].annotations
+    assert manifest0.layers[3].annotations["org.opencontainers.image.title"] == "README.md"
+    assert "io.opendatahub.modelcar.layer.type" in manifest0.layers[3].annotations.keys()
+    assert manifest0.layers[3].annotations["io.opendatahub.modelcar.layer.type"] == "modelcard"

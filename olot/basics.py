@@ -14,7 +14,7 @@ from olot.oci.oci_image_manifest import OCIImageManifest, ContentDescriptor
 from olot.oci.oci_image_layout import verify_ocilayout
 from olot.oci.oci_common import MediaTypes
 
-from olot.utils.files import handle_remove, tarball_from_file, targz_from_file
+from olot.utils.files import LayerStats, handle_remove, tarball_from_file, targz_from_file
 from olot.utils.types import compute_hash_of_str
 
 logger = logging.getLogger(__name__)
@@ -43,18 +43,18 @@ def oci_layers_on_top(
     ocilayout_root_index: OCIImageIndex = read_ocilayout_root_index(ocilayout)
     ocilayout_indexes: Dict[str, OCIImageIndex] = crawl_ocilayout_indexes(ocilayout, ocilayout_root_index)
     ocilayout_manifests: Dict[str, OCIImageManifest] = crawl_ocilayout_manifests(ocilayout, ocilayout_indexes, ocilayout_root_index)
-    new_layers = {} # layer digest : diff_id
+    new_layers: Dict[str, LayerStats] = {} # layer digest : diff_id
 
     sha256_path = ocilayout / "blobs" / "sha256"
     for model in model_files:
         model = Path(model)
         new_layer = tarball_from_file(model, sha256_path)
-        new_layers[new_layer] = new_layer
+        new_layers[new_layer.layer_digest] = new_layer
         if remove_originals:
             handle_remove(model)
     if modelcard is not None:
-        modelcard_layer_diffid = targz_from_file(Path(modelcard), sha256_path)
-        new_layers[modelcard_layer_diffid[0]] = modelcard_layer_diffid[1]
+        new_layer = targz_from_file(Path(modelcard), sha256_path)
+        new_layers[new_layer.layer_digest] = new_layer
         if remove_originals:
             handle_remove(modelcard)
 
@@ -65,20 +65,23 @@ def oci_layers_on_top(
         mc = None
         with open(ocilayout / "blobs" / "sha256" / config_sha, "r") as cf:
             mc = OCIManifestConfig.model_validate_json(cf.read())
-        for layer, diffid in new_layers.items():
-            size = os.stat(ocilayout / "blobs" / "sha256" / layer).st_size
-            mt = MediaTypes.layer if layer == diffid else MediaTypes.layer_gzip
-            la = None if layer == diffid else {"io.opendatahub.modelcar.layer.type":"modelcard"}
+        for new_layer in new_layers.values():
+            layer_digest = new_layer.layer_digest
+            size = os.stat(ocilayout / "blobs" / "sha256" / layer_digest).st_size
+            mt = MediaTypes.layer if layer_digest == new_layer.diff_id else MediaTypes.layer_gzip
+            la = {"org.opencontainers.image.title": new_layer.title}
+            if layer_digest != new_layer.diff_id:
+                la["io.opendatahub.modelcar.layer.type"] = "modelcard"
             cd = ContentDescriptor(
                 mediaType=mt,
-                digest="sha256:"+layer,
+                digest="sha256:"+layer_digest,
                 size=size,
                 urls=None,
                 data=None,
                 artifactType=None,
                 annotations=la
             )
-            mc.rootfs.diff_ids.append("sha256:"+diffid)
+            mc.rootfs.diff_ids.append("sha256:"+new_layer.diff_id)
             manifest.layers.append(cd)
         # TODO: add to Manifest.config the history/author of this project.
         mc_json = mc.model_dump_json(exclude_none=True)

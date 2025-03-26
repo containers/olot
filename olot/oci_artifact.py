@@ -88,10 +88,13 @@ def create_blobs(model_files: List[Path], dest_dir: Path):
         file_name = os.path.basename(os.path.normpath(model_file))
         # handle model card file if encountered - assume README.md is the modelcard
         if file_name.endswith("README.md"):
-            postcomp_chksum, precomp_chksum = targz_from_file(model_file, sha256_path)
+            new_layer = targz_from_file(model_file, sha256_path)
+            postcomp_chksum = new_layer.layer_digest
+            precomp_chksum = new_layer.diff_id     
             layers[file_name] = (precomp_chksum, postcomp_chksum)
         else:
-            checksum = tarball_from_file(model_file, sha256_path)
+            new_layer = tarball_from_file(model_file, sha256_path)
+            checksum = new_layer.layer_digest
             layers[file_name] = (checksum, "")
     return layers
 

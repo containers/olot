@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 import hashlib
 import logging
 import shutil
@@ -35,6 +36,13 @@ def get_file_hash(path) -> str:
     return h.hexdigest()
 
 
+@dataclass
+class LayerStats:
+    layer_digest: str
+    diff_id: str # will be same as layer_digest if only tar, not targz
+    title: str
+
+
 def tar_filter_fn(input: tarfile.TarInfo) -> tarfile.TarInfo :
     """
     A filter function for modifying file metadata when adding files to a tar archive.
@@ -56,7 +64,7 @@ def tar_filter_fn(input: tarfile.TarInfo) -> tarfile.TarInfo :
     return input
 
 
-def tarball_from_file(file_path: Path, dest: Path) -> str:
+def tarball_from_file(file_path: Path, dest: Path) -> LayerStats:
     """
     Creates a tarball from a specified file, storing it in the destination directory with a name based on its checksum.
 
@@ -65,7 +73,7 @@ def tarball_from_file(file_path: Path, dest: Path) -> str:
         dest (Path): The destination directory where the tarball will be saved.
 
     Returns:
-        str: The checksum (SHA-256) of the tarball, which is also used as the filename.
+        LayerStats: including the checksum (SHA-256) of the tarball, which is also used as the filename.
 
     Raises:
         ValueError: If supplied input file path does not exist.
@@ -85,14 +93,14 @@ def tarball_from_file(file_path: Path, dest: Path) -> str:
                 tar.add(file_path, arcname="/models/"+file_path.name, filter=tar_filter_fn)
         checksum = writer.hash_func.hexdigest()
         os.rename(temp_dest, dest / checksum)
-        return checksum
+        return LayerStats(checksum, checksum, file_path.name)
     except tarfile.TarError as e:
         raise tarfile.TarError(f"Error creating tarball: {e}") from e
     except OSError as e:
         raise OSError(f"File operation failed: {e}") from e
 
 
-def targz_from_file(file_path: Path, dest: Path) -> tuple[str, str]:
+def targz_from_file(file_path: Path, dest: Path) -> LayerStats:
     """
     Creates a gzipped tarball from the specified file, storing it in the destination directory.
     The tarball's filename is based on the post-compression checksum.
@@ -103,7 +111,7 @@ def targz_from_file(file_path: Path, dest: Path) -> tuple[str, str]:
                      does not exist, it will be created.
 
     Returns:
-        tuple[str, str]: A tuple containing:
+        LayerStats: containing:
             - The post-compression checksum (SHA-256 of the gzipped tarball).
             - The pre-compression checksum (SHA-256 of the tar content).
 
@@ -128,7 +136,7 @@ def targz_from_file(file_path: Path, dest: Path) -> tuple[str, str]:
         precompress_checksum = inner_writer.hash_func.hexdigest()
         postcompress_checksum = writer.hash_func.hexdigest()
         os.rename(temp_dest, dest / postcompress_checksum)
-        return (postcompress_checksum, precompress_checksum)
+        return LayerStats(postcompress_checksum, precompress_checksum, file_path.name)
     except tarfile.TarError as e:
         raise tarfile.TarError(f"Error creating tarball: {e}") from e
     except OSError as e:
