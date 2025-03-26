@@ -66,15 +66,15 @@ def oci_layers_on_top(
         with open(ocilayout / "blobs" / "sha256" / config_sha, "r") as cf:
             mc = OCIManifestConfig.model_validate_json(cf.read())
         for new_layer in new_layers.values():
-            layer = new_layer.layer_digest
-            size = os.stat(ocilayout / "blobs" / "sha256" / layer).st_size
-            mt = MediaTypes.layer if layer == new_layer.diff_id else MediaTypes.layer_gzip
+            layer_digest = new_layer.layer_digest
+            size = os.stat(ocilayout / "blobs" / "sha256" / layer_digest).st_size
+            mt = MediaTypes.layer if layer_digest == new_layer.diff_id else MediaTypes.layer_gzip
             la = {"org.opencontainers.image.title": new_layer.title}
-            if layer != new_layer.diff_id:
+            if layer_digest != new_layer.diff_id:
                 la["io.opendatahub.modelcar.layer.type"] = "modelcard"
             cd = ContentDescriptor(
                 mediaType=mt,
-                digest="sha256:"+layer,
+                digest="sha256:"+layer_digest,
                 size=size,
                 urls=None,
                 data=None,
