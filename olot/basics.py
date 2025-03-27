@@ -93,7 +93,6 @@ def oci_layers_on_top(
             )
             mc.history.append(hi)
             manifest.layers.append(cd)
-        # TODO: add to Manifest.config the history/author of this project.
         mc_json = mc.model_dump_json(exclude_none=True)
         with open(ocilayout / "blobs" / "sha256" / config_sha, "w") as cf:
             cf.write(mc_json)
