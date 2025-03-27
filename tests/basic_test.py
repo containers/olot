@@ -5,6 +5,7 @@ from typing import Dict
 
 from olot.basics import crawl_ocilayout_blobs_to_extract, crawl_ocilayout_indexes, crawl_ocilayout_manifests, oci_layers_on_top
 
+from olot.oci.oci_config import OCIManifestConfig
 from olot.oci.oci_image_index import OCIImageIndex, read_ocilayout_root_index
 from olot.oci.oci_image_manifest import OCIImageManifest
 from tests.common import sample_model_path, test_data_path
@@ -172,3 +173,11 @@ def test_oci_layers_on_top_single_manifest_and_check_annotations(tmp_path: Path)
     modelcar_digest = manifest0.layers[3].digest
     assert manifest0.annotations
     assert manifest0.annotations["io.opendatahub.layers.modelcard"] == modelcar_digest
+
+    assert len(manifest0.layers) == 4
+    # check manifest.config.history contains the appropriate length
+    with open(target_ocilayout / "blobs" / "sha256" / manifest0.config.digest.removeprefix("sha256:"), "r") as f:
+        mc = OCIManifestConfig.model_validate_json(f.read())
+        assert mc.history
+        assert len(mc.history) == 5 # check we preserved also previous history, 2 elements, + 3 new history items for the 3 new layers
+        assert len(list(x for x in mc.history if not x.empty_layer)) == len(manifest0.layers)

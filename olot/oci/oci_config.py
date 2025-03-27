@@ -23,7 +23,7 @@ class Rootfs(BaseModel):
 
 
 class HistoryItem(BaseModel):
-    created: Optional[datetime] = None
+    created: Optional[str] = None # A combined date and time at which the layer was created, formatted as defined by RFC 3339, section 5.6.
     author: Optional[str] = None
     created_by: Optional[str] = None
     comment: Optional[str] = None

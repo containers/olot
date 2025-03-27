@@ -1,4 +1,4 @@
-
+import datetime
 import logging
 import os
 from pathlib import Path
@@ -7,7 +7,7 @@ import tarfile
 from typing import Dict, List, Sequence
 import typing
 
-from olot.oci.oci_config import OCIManifestConfig
+from olot.oci.oci_config import HistoryItem, OCIManifestConfig
 
 from olot.oci.oci_image_index import OCIImageIndex, read_ocilayout_root_index
 from olot.oci.oci_image_manifest import OCIImageManifest, ContentDescriptor
@@ -65,12 +65,17 @@ def oci_layers_on_top(
         mc = None
         with open(ocilayout / "blobs" / "sha256" / config_sha, "r") as cf:
             mc = OCIManifestConfig.model_validate_json(cf.read())
+            if mc.history is None:
+                mc.history = []
         for new_layer in new_layers.values():
             layer_digest = new_layer.layer_digest
-            size = os.stat(ocilayout / "blobs" / "sha256" / layer_digest).st_size
+            layer_stat = os.stat(ocilayout / "blobs" / "sha256" / layer_digest)
+            size = layer_stat.st_size
+            ctime = layer_stat.st_ctime
             mt = MediaTypes.layer if layer_digest == new_layer.diff_id else MediaTypes.layer_gzip
             la = {"org.opencontainers.image.title": new_layer.title}
-            if layer_digest != new_layer.diff_id:
+            is_modelcard = layer_digest != new_layer.diff_id
+            if is_modelcard:
                 la["io.opendatahub.modelcar.layer.type"] = "modelcard"
             cd = ContentDescriptor(
                 mediaType=mt,
@@ -82,6 +87,11 @@ def oci_layers_on_top(
                 annotations=la
             )
             mc.rootfs.diff_ids.append("sha256:"+new_layer.diff_id)
+            hi = HistoryItem(
+                created=datetime.datetime.fromtimestamp(ctime, tz=datetime.timezone.utc).isoformat(timespec="seconds").replace("+00:00","Z"),
+                created_by="olot oci_layers_on_top "+new_layer.title+(" (modelcard)" if is_modelcard else "")
+            )
+            mc.history.append(hi)
             manifest.layers.append(cd)
         # TODO: add to Manifest.config the history/author of this project.
         mc_json = mc.model_dump_json(exclude_none=True)
@@ -98,6 +108,7 @@ def oci_layers_on_top(
         manifest.annotations["io.opendatahub.author"] = "olot"
         if modelcard is not None:
             manifest.annotations["io.opendatahub.layers.modelcard"] = "sha256:"+next(reversed(new_layers.keys())) # identify ModelCarD layer from Image Manifest
+        check_manifest(manifest, mc)
         manifest_json = manifest.model_dump_json(exclude_none=True)
         with open(ocilayout / "blobs" / "sha256" / manifest_hash, "w") as cf:
             cf.write(manifest_json)
@@ -139,6 +150,14 @@ def oci_layers_on_top(
     with open(ocilayout / "index.json", "w") as root_idx_f:
         root_idx_f.write(ocilayout_root_index.model_dump_json(exclude_none=True))
 
+
+def check_manifest(manifest: OCIImageManifest, config: OCIManifestConfig):
+    """perform some sanity check on the manifests required for additional scenarios of usage
+    """
+    ch_count = len(list(x for x in config.history if not x.empty_layer)) if config.history else 0
+    layers_count = len(manifest.layers)
+    if layers_count != ch_count:
+        raise ValueError(f"history lists {ch_count} non-empty layers, but there are {layers_count} layers in the image manifest")
 
 
 def crawl_ocilayout_manifests(ocilayout: Path, ocilayout_indexes: Dict[str, OCIImageIndex], ocilayout_root_index: typing.Union[OCIImageIndex, None] = None) -> Dict[str, OCIImageManifest]:
