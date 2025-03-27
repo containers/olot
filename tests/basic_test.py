@@ -162,8 +162,13 @@ def test_oci_layers_on_top_single_manifest_and_check_annotations(tmp_path: Path)
     assert manifest0.layers[1].annotations["org.opencontainers.image.title"] == "model.joblib"
     assert manifest0.layers[2].annotations
     assert manifest0.layers[2].annotations["org.opencontainers.image.title"] == "hello.md"
-    # identify the ModelCarD layer by means of annotation(s)
+    # identify the ModelCarD layer by means of annotation(s) on the layer
     assert manifest0.layers[3].annotations
     assert manifest0.layers[3].annotations["org.opencontainers.image.title"] == "README.md"
     assert "io.opendatahub.modelcar.layer.type" in manifest0.layers[3].annotations.keys()
     assert manifest0.layers[3].annotations["io.opendatahub.modelcar.layer.type"] == "modelcard"
+
+    # identify the ModelCarD by means of annotation from the Image Manifest
+    modelcar_digest = manifest0.layers[3].digest
+    assert manifest0.annotations
+    assert manifest0.annotations["io.opendatahub.layers.modelcard"] == modelcar_digest

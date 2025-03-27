@@ -96,6 +96,8 @@ def oci_layers_on_top(
         if manifest.annotations is None:
             manifest.annotations = {}
         manifest.annotations["io.opendatahub.author"] = "olot"
+        if modelcard is not None:
+            manifest.annotations["io.opendatahub.layers.modelcard"] = "sha256:"+next(reversed(new_layers.keys())) # identify ModelCarD layer from Image Manifest
         manifest_json = manifest.model_dump_json(exclude_none=True)
         with open(ocilayout / "blobs" / "sha256" / manifest_hash, "w") as cf:
             cf.write(manifest_json)
