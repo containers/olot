@@ -1,4 +1,5 @@
 import datetime
+from enum import Enum
 import logging
 import os
 from pathlib import Path
@@ -19,12 +20,28 @@ from olot.utils.types import compute_hash_of_str
 
 logger = logging.getLogger(__name__)
 
+class CustomStrEnum(str, Enum):
+    """To polyfill back to 3.9"""
+    @classmethod
+    def values(cls) -> Sequence[str]:
+        return [e.value for e in cls]
+    
+
+class RemoveOriginals(CustomStrEnum):
+    """Strategy to be applied when removing original files
+    
+    default: remove only model weights, configuration, etc.
+    all: like default, but also remove the Model CarD"""
+    DEFAULT = "default"
+    ALL = "all"
+
+
 def oci_layers_on_top(
         ocilayout: typing.Union[str, os.PathLike],
         model_files: Sequence[os.PathLike],
         modelcard: typing.Union[os.PathLike, None] = None,
         *,
-        remove_originals: bool = False):
+        remove_originals: typing.Union[RemoveOriginals, None] = None):
     """
     Add contents to an oci-layout directory as new blob layers
 
@@ -32,12 +49,12 @@ def oci_layers_on_top(
         ocilayout: The oci-layout directory of the base image.
         model_files: PathLike array to be added as new blob layers.
         modelcard: PathLike of the README.md of the ModelCarD, will be added as the last layer with compression and annotations.
-        remove: whether to remove the original content files after having added the layers, default: False.
+        remove_originals: whether to remove the original content files after having added the layers, default: None.
     """
     if not isinstance(ocilayout, Path):
         ocilayout = Path(ocilayout)
     if remove_originals:
-        logger.info("Invoked with 'remove' to delete original contents after adding as a blob layer.")
+        logger.info("Invoked with remove_originals=%s to delete original contents after adding as a blob layer.", remove_originals.value)
 
     verify_ocilayout(ocilayout)
     ocilayout_root_index: OCIImageIndex = read_ocilayout_root_index(ocilayout)
@@ -55,7 +72,7 @@ def oci_layers_on_top(
     if modelcard is not None:
         new_layer = targz_from_file(Path(modelcard), sha256_path)
         new_layers[new_layer.layer_digest] = new_layer
-        if remove_originals:
+        if remove_originals == RemoveOriginals.ALL:
             handle_remove(modelcard)
 
     new_ocilayout_manifests: Dict[str, str] = {}
