@@ -77,6 +77,40 @@ jobs:
         curl -s -H "Content-Type: application/json" -d @e2e/data/input0.json http://localhost:8080/v2/models/my-inference-service/infer | jq
         curl -s -H "Content-Type: application/json" -d @e2e/data/input1.json http://localhost:8080/v2/models/my-inference-service/infer | jq
         curl -s -H "Content-Type: application/json" -d @e2e/data/input4.json http://localhost:8080/v2/models/my-inference-service/infer | jq
+    - name: Run OLOT flow using busybox, and load image in KinD for amd64
+      run: | 
+        IMAGE_DIR=download
+        OCI_REGISTRY_SOURCE=docker.io/library/busybox:latest
+        OCI_REGISTRY_DESTINATION=localhost:5001/nstestorg/modelcar2
+        rm -rf $IMAGE_DIR
+        skopeo copy --multi-arch all docker://${OCI_REGISTRY_SOURCE} oci:${IMAGE_DIR}:latest
+        poetry run olot $IMAGE_DIR --modelcard tests/data/sample-model/README.md tests/data/sample-model/model.joblib
+        skopeo copy --tls-verify=false --multi-arch all oci:${IMAGE_DIR}:latest docker://${OCI_REGISTRY_DESTINATION}
+        digest=$(skopeo inspect --tls-verify=false --raw docker://localhost:5001/nstestorg/modelcar2 | jq -r '.manifests[] | select(.platform.architecture == "amd64") | .digest')
+        skopeo inspect --tls-verify=false docker://${OCI_REGISTRY_DESTINATION}@$digest --raw | jq -e '.layers | last | has("annotations")'
+        # tag amd64 as modelcar2:v2 and load image in KinD cluster
+        skopeo copy --src-tls-verify=false docker://localhost:5001/nstestorg/modelcar2@$digest docker-daemon:localhost:5001/nstestorg/modelcar2:v2
+        kind load docker-image -n "kind" "localhost:5001/nstestorg/modelcar2:v2"
+    - name: Apply Isvc using Modelcar # since the enable modelcar restart controller pod, better guard the kubectl apply
+      run: |
+        kubectl patch isvc/my-inference-service \
+          --type='json' \
+          -p='[{"op": "replace", "path": "/spec/predictor/model/storageUri", "value": "oci://localhost:5001/nstestorg/modelcar2:v2"}]'
+        kubectl wait --for=condition=Ready isvc/my-inference-service --timeout=240s
+        kubectl describe isvc/my-inference-service
+    - name: Basic testing of Isvc that has Modelcar
+      run: |
+        echo "Starting port-forward..."
+        kubectl port-forward svc/my-inference-service-predictor 8080:80 &
+        PID=$!
+        sleep 2
+        echo "I have launched port-forward in background with: $PID."
+        echo "Check that OIP return the expected name"
+        curl -s http://localhost:8080/v2/models | jq -e '.models | index("my-inference-service") != null'
+        echo "Check that OIP produces an Inference Prediction"
+        curl -s -H "Content-Type: application/json" -d @e2e/data/input0.json http://localhost:8080/v2/models/my-inference-service/infer | jq
+        curl -s -H "Content-Type: application/json" -d @e2e/data/input1.json http://localhost:8080/v2/models/my-inference-service/infer | jq
+        curl -s -H "Content-Type: application/json" -d @e2e/data/input4.json http://localhost:8080/v2/models/my-inference-service/infer | jq
   e2e-oras:
     name: E2E using Oras CP
     runs-on: ubuntu-24.04

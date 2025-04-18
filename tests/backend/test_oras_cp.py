@@ -1,4 +1,5 @@
 import os
+import shutil
 import subprocess
 import time
 import docker # type: ignore
@@ -8,6 +9,7 @@ from olot.backend.oras_cp import is_oras, oras_pull, oras_push
 from olot.basics import oci_layers_on_top
 from olot.oci.oci_image_layout import verify_ocilayout
 from olot.oci.oci_image_index import read_ocilayout_root_index
+from tests.common import sample_model_path
 
 @pytest.mark.e2e_oras
 def test_is_oras():
@@ -144,3 +146,27 @@ def test_oras_scenario_modelcard(tmp_path):
     if attempt == max_attempts:
         print("Was unable to terminate the test container")
     client.images.remove("localhost:5001/nstestorg/modelcar")
+
+
+@pytest.mark.e2e_oras
+def test_oras_with_docker_attestated_base_image(tmp_path):
+    """Test oras with an end-to-end scenario for docker image with docker vendor specific attestation format
+    """
+    test_sample_model = sample_model_path()
+    target_model = tmp_path / "models"
+    shutil.copytree(test_sample_model, target_model)
+    print(os.listdir(target_model))
+    target_ocilayout = tmp_path / "myocilayout"
+
+    models = [
+        target_model / "model.joblib",
+        target_model / "hello.md"
+    ]
+    for model in models:
+        assert model.exists()
+    modelcard = target_model / "README.md"
+    assert modelcard.exists()
+
+    oras_pull("docker.io/library/busybox:latest", target_ocilayout)
+
+    oci_layers_on_top(target_ocilayout, models, modelcard)

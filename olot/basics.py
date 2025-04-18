@@ -121,10 +121,14 @@ def oci_layers_on_top(
     for index_hash, index in ocilayout_indexes.items():
         print(index_hash, index.mediaType)
         for m in index.manifests:
-            lookup_new_hash = new_ocilayout_manifests[m.digest.removeprefix("sha256:")]
-            print(f"old manifest {m.digest} is now at {lookup_new_hash}")
-            m.digest = "sha256:" + lookup_new_hash
-            m.size = os.stat(ocilayout / "blobs" / "sha256" / lookup_new_hash).st_size
+            digest = m.digest.removeprefix("sha256:")
+            if digest in new_ocilayout_manifests.keys():
+                lookup_new_hash = new_ocilayout_manifests[m.digest.removeprefix("sha256:")]
+                logger.info("old manifest %s is now at %s", m.digest, lookup_new_hash)
+                m.digest = "sha256:" + lookup_new_hash
+                m.size = os.stat(ocilayout / "blobs" / "sha256" / lookup_new_hash).st_size
+            else:
+                logger.info("manifest %s was unchanged", digest)
         index_json = index.model_dump_json(exclude_none=True)
         with open(ocilayout / "blobs" / "sha256" / index_hash, "w") as idxf:
             idxf.write(index_json)
@@ -140,10 +144,14 @@ def oci_layers_on_top(
             entry.digest = "sha256:" + lookup_new_hash
             entry.size = os.stat(ocilayout / "blobs" / "sha256" / lookup_new_hash).st_size
         elif entry.mediaType == MediaTypes.manifest:
-            lookup_new_hash = new_ocilayout_manifests[entry.digest.removeprefix("sha256:")]
-            print(f"old index {entry.digest} is now at {lookup_new_hash}")
-            entry.digest = "sha256:" + lookup_new_hash
-            entry.size = os.stat(ocilayout / "blobs" / "sha256" / lookup_new_hash).st_size
+            digest = entry.digest.removeprefix("sha256:")
+            if digest in new_ocilayout_manifests.keys():
+                lookup_new_hash = new_ocilayout_manifests[entry.digest.removeprefix("sha256:")]
+                logger.info("old manifest %s is now at %s", entry.digest, lookup_new_hash)
+                entry.digest = "sha256:" + lookup_new_hash
+                entry.size = os.stat(ocilayout / "blobs" / "sha256" / lookup_new_hash).st_size
+            else:
+                logger.info("manifest %s was unchanged", digest)
         else:
             raise ValueError(f"unknown root index mediaType {entry.mediaType}")
     with open(ocilayout / "index.json", "w") as root_idx_f:
@@ -173,16 +181,23 @@ def crawl_ocilayout_manifests(ocilayout: Path, ocilayout_indexes: Dict[str, OCII
             manifest_path = ocilayout / "blobs" / "sha256" / target_hash
             with open(manifest_path, "r") as ip:
                 ocilayout_manifests[target_hash] = OCIImageManifest.model_validate_json(ip.read())
-    if ocilayout_root_index is None:
-        return ocilayout_manifests # return early
-    for m in ocilayout_root_index.manifests:
+    for m in ocilayout_root_index.manifests if ocilayout_root_index is not None else []:
         if m.mediaType == MediaTypes.manifest:
             target_hash = m.digest.removeprefix("sha256:")
             logger.debug("Lookup remainder manifest from ocilayout_root_index having target_hash %s", target_hash)
             manifest_path = ocilayout / "blobs" / "sha256" / target_hash
             with open(manifest_path, "r") as ip:
                 ocilayout_manifests[target_hash] = OCIImageManifest.model_validate_json(ip.read())
-    return ocilayout_manifests
+
+    # filter out non-runnable OCI Images, like Vendor'd Attestations format, and log it out
+    filtered: Dict[str, OCIImageManifest]  = {}
+    for k, v in ocilayout_manifests.items():
+        if v.layers[0].mediaType == "application/vnd.in-toto+json" or v.artifactType == "application/vnd.docker.attestation.manifest.v1+json":
+            logger.info("skipping %s as it's an Attestation manifest", k) # not adding this to filtered list of manifests.
+        else:
+            filtered[k] = v
+
+    return filtered
 
 
 def crawl_ocilayout_indexes(ocilayout: Path, ocilayout_root_index: OCIImageIndex) -> Dict[str, OCIImageIndex] :
