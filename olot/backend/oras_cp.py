@@ -7,10 +7,10 @@ def is_oras() -> bool :
     return shutil.which("oras") is not None
 
 
-def oras_pull(base_image: str, dest: typing.Union[str, os.PathLike]):
+def oras_pull(base_image: str, dest: typing.Union[str, os.PathLike], params: typing.Sequence[str]=[]):
     if isinstance(dest, os.PathLike):
         dest = str(dest)
-    subprocess.run(["oras", "copy", "--to-oci-layout", base_image, dest+":latest"], check=True)
+    subprocess.run(["oras", "copy", "--to-oci-layout", *params, base_image, dest+":latest"], check=True)
     blobs_dir = os.path.join(dest, "blobs", "sha256")
     for _, _, files in os.walk(blobs_dir):
         for file in files:
