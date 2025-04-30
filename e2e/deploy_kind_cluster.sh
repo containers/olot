@@ -1,3 +1,4 @@
+#!/bin/bash
 
 if [[ -n "$LOCAL" ]]; then
     CLUSTER_NAME="${CLUSTER_NAME:-olot-e2e}"
