@@ -140,3 +140,75 @@ jobs:
     - name: Run E2E tests
       run: |
         make test-e2e-oras
+  e2e-remove-originals-cli:
+    name: E2E test remove-originals scenario from CLI
+    runs-on: ubuntu-24.04
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    - name: Install Skopeo
+      run: |
+        sudo apt-get update && sudo apt-get install skopeo
+        skopeo --version
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.9' 
+    - name: Install Poetry
+      run: |
+        pipx install poetry
+    - name: Install dependencies
+      run: |
+        make install
+    - name: Run OLOT tutorial of README, and load image in KinD for amd64
+      run: | 
+        IMAGE_DIR=download
+        OCI_REGISTRY_SOURCE=quay.io/mmortari/hello-world-wait:latest
+        OCI_REGISTRY_DESTINATION=localhost:5001/nstestorg/modelcar
+        rm -rf $IMAGE_DIR
+        skopeo copy --multi-arch all docker://${OCI_REGISTRY_SOURCE} oci:${IMAGE_DIR}:latest
+
+        tmp_dir=$(mktemp -d)
+        echo "*** no-flag scenario using $tmp_dir"
+        cp tests/data/sample-model/README.md "$tmp_dir"
+        cp tests/data/sample-model/model.joblib "$tmp_dir"
+        ls -la "$tmp_dir"
+        poetry run olot $IMAGE_DIR --modelcard "$tmp_dir"/README.md "$tmp_dir"/model.joblib
+        fc=$(find "$tmp_dir" -maxdepth 1 -type f | wc -l)
+        if [ "$fc" -ne 2 ]; then
+          echo "Expected all 2 files remaining, found:"
+          find "$tmp_dir" -maxdepth 1 -type f
+          exit 1
+        fi
+        echo "resulting in:"
+        ls -la "$tmp_dir"
+
+        tmp_dir=$(mktemp -d)
+        echo "*** --remove-originals scenario using $tmp_dir"
+        cp tests/data/sample-model/README.md "$tmp_dir"
+        cp tests/data/sample-model/model.joblib "$tmp_dir"
+        ls -la "$tmp_dir"
+        poetry run olot $IMAGE_DIR --remove-originals --modelcard "$tmp_dir"/README.md "$tmp_dir"/model.joblib
+        fc=$(find "$tmp_dir" -maxdepth 1 -type f | wc -l)
+        if [ "$fc" -ne 1 ]; then
+          echo "Expected only Model CarD remaining, found:"
+          find "$tmp_dir" -maxdepth 1 -type f
+          exit 1
+        fi
+        echo "resulting in:"
+        ls -la "$tmp_dir"
+
+        tmp_dir=$(mktemp -d)
+        echo "*** --remove-originals=all scenario using $tmp_dir"
+        cp tests/data/sample-model/README.md "$tmp_dir"
+        cp tests/data/sample-model/model.joblib "$tmp_dir"
+        ls -la "$tmp_dir"
+        poetry run olot $IMAGE_DIR --remove-originals all --modelcard "$tmp_dir"/README.md "$tmp_dir"/model.joblib
+        fc=$(find "$tmp_dir" -maxdepth 1 -type f | wc -l)
+        if [ "$fc" -ne 0 ]; then
+          echo "Expected none file remaining, found:"
+          find "$tmp_dir" -maxdepth 1 -type f
+          exit 1
+        fi
+        echo "resulting in:"
+        ls -la "$tmp_dir"
