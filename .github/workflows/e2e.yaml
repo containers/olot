@@ -52,7 +52,7 @@ jobs:
         skopeo inspect --tls-verify=false docker://${OCI_REGISTRY_DESTINATION}@$digest --raw | jq -e '.layers | last | has("annotations")'
         # tag amd64 as modelcar:v1 and load image in KinD cluster
         skopeo copy --src-tls-verify=false docker://localhost:5001/nstestorg/modelcar@$digest docker-daemon:localhost:5001/nstestorg/modelcar:v1
-        kind load docker-image -n "kind" "localhost:5001/nstestorg/modelcar:v1"
+        kind load docker-image -n "olot-e2e" "localhost:5001/nstestorg/modelcar:v1"
     - name: Apply Isvc using Modelcar # since the enable modelcar restart controller pod, better guard the kubectl apply
       run: |
         e2e/repeat.sh kubectl apply -f e2e/isvc-modelcar.yaml
@@ -83,7 +83,7 @@ jobs:
         skopeo inspect --tls-verify=false docker://${OCI_REGISTRY_DESTINATION}@$digest --raw | jq -e '.layers | last | has("annotations")'
         # tag amd64 as modelcar2:v2 and load image in KinD cluster
         skopeo copy --src-tls-verify=false docker://localhost:5001/nstestorg/modelcar2@$digest docker-daemon:localhost:5001/nstestorg/modelcar2:v2
-        kind load docker-image -n "kind" "localhost:5001/nstestorg/modelcar2:v2"
+        kind load docker-image -n "olot-e2e" "localhost:5001/nstestorg/modelcar2:v2"
     - name: Apply Isvc using Modelcar # since the enable modelcar restart controller pod, better guard the kubectl apply
       run: |
         kubectl patch isvc/my-inference-service \
