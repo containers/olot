@@ -90,7 +90,7 @@ def oci_layers_on_top(
             size = layer_stat.st_size
             ctime = layer_stat.st_ctime
             mt = MediaTypes.layer if layer_digest == new_layer.diff_id else MediaTypes.layer_gzip
-            la = {"org.opencontainers.image.title": new_layer.title}
+            la = {"org.opencontainers.image.title": new_layer.title} # if ever used for OCI artifact, add `unpack` annotations 
             is_modelcard = layer_digest != new_layer.diff_id
             if is_modelcard:
                 la["io.opendatahub.modelcar.layer.type"] = "modelcard"
