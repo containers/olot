@@ -1,6 +1,9 @@
 # oci layers on top
 
-`olot` is a python-based tool to append layers (files) onto an OCI-compatible image. It is meant to be used in conjunction with command-line based tools to fetch and upload these images. Tools such as [skopeo](https://github.com/containers/skopeo) or [oras](https://github.com/oras-project/oras). It can be used either as a CLI tool, or via standard python interface. The package is published to [pypy](https://pypi.org/p/olot).
+`olot` is a python-based tool to append layers (files) onto an OCI-compatible image.
+It is meant to be used in conjunction with command-line based tools to fetch and upload these images. Tools such as [skopeo](https://github.com/containers/skopeo) or [oras](https://github.com/oras-project/oras).
+It leverages standard oci-layout format from the [OCI Image Layout Specification](https://github.com/opencontainers/image-spec/blob/main/image-layout.md).
+It can be used either as a CLI tool, or via standard python interface. The package is published to [pypy](https://pypi.org/p/olot).
 
 ## Usage
 
