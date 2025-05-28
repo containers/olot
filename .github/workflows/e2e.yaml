@@ -128,7 +128,7 @@ jobs:
     - name: Install-only specific KinD version (so it's up-to-date)
       uses: helm/kind-action@v1
       with:
-        version: v0.29.0
+        # version: v0.29.0
         install_only: true
     - name: Install dependencies
       run: |
