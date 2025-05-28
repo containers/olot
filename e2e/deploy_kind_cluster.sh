@@ -13,3 +13,5 @@ if [[ -n "$LOCAL" ]]; then
         kind create cluster -n "$CLUSTER_NAME"
     fi
 fi
+
+kubectl version -o json
