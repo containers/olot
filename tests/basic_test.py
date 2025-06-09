@@ -8,7 +8,7 @@ from olot.basics import RemoveOriginals, crawl_ocilayout_blobs_to_extract, crawl
 from olot.oci.oci_config import OCIManifestConfig
 from olot.oci.oci_image_index import OCIImageIndex, read_ocilayout_root_index
 from olot.oci.oci_image_manifest import OCIImageManifest
-from tests.common import sample_model_path, test_data_path
+from tests.common import sample_model_path, get_test_data_path
 
 
 def test_remove_originals():
@@ -78,7 +78,7 @@ def test_oci_layers_on_top_with_remove_all(tmp_path: Path):
     """put oci_layers_on_top under test with 'remove' option
     """
     test_sample_model = sample_model_path()
-    test_ocilayout2 = test_data_path() / "ocilayout2"
+    test_ocilayout2 = get_test_data_path() / "ocilayout2"
     target_ocilayout = tmp_path / "myocilayout"
     shutil.copytree(test_ocilayout2, target_ocilayout)
     target_model = tmp_path / "models"
@@ -105,7 +105,7 @@ def test_oci_layers_on_top_with_remove_default(tmp_path: Path):
     """put oci_layers_on_top under test with 'remove' option
     """
     test_sample_model = sample_model_path()
-    test_ocilayout2 = test_data_path() / "ocilayout2"
+    test_ocilayout2 = get_test_data_path() / "ocilayout2"
     target_ocilayout = tmp_path / "myocilayout"
     shutil.copytree(test_ocilayout2, target_ocilayout)
     target_model = tmp_path / "models"
@@ -134,7 +134,7 @@ def test_oci_layers_on_top_without_remove(tmp_path: Path):
     used for future and non-regression of "API contract"
     """
     test_sample_model = sample_model_path()
-    test_ocilayout2 = test_data_path() / "ocilayout2"
+    test_ocilayout2 = get_test_data_path() / "ocilayout2"
     target_ocilayout = tmp_path / "myocilayout"
     shutil.copytree(test_ocilayout2, target_ocilayout)
     target_model = tmp_path / "models"
@@ -163,7 +163,7 @@ def test_oci_layers_on_top_single_manifest_and_check_annotations(tmp_path: Path)
     the expected annotations
     """
     test_sample_model = sample_model_path()
-    test_ocilayout5 = test_data_path() / "ocilayout5"
+    test_ocilayout5 = get_test_data_path() / "ocilayout5"
     target_ocilayout = tmp_path / "myocilayout"
     shutil.copytree(test_ocilayout5, target_ocilayout)
     target_model = tmp_path / "models"
