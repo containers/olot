@@ -1,7 +1,10 @@
+from pathlib import Path
 import tarfile
 import gzip
 import shutil
 import os
+
+import pytest
 from olot.utils.files import get_file_hash, HashingWriter, tarball_from_file, targz_from_file
 
 from tests.common import sample_model_path, sha256_path
@@ -74,6 +77,7 @@ def test_Hashwriter_tar_gz(tmp_path):
         if file.is_file():
             print(file)
 
+
 def test_tarball_from_file(tmp_path):
     """Test tarball_from_file() function is able to produce the expected tar (uncompressed) layer blob in the oci-layout
     """
@@ -95,6 +99,32 @@ def test_tarball_from_file(tmp_path):
             if tarinfo.name == "models/model.joblib" and tarinfo.mode == 0o664:
                 found = tarinfo # model.joblib is added in models/ inside modelcar with expected permissions
     assert found
+
+
+def test_tarball_from_file_using_prefix(tmp_path):
+    """Test tarball_from_file() function is able to produce the expected tar (uncompressed) layer blob in the oci-layout
+    but providing a custom prefix location for the file.
+    """
+    model_path = sample_model_path() / "model.joblib"
+    write_dest = sha256_path(tmp_path)
+    write_dest.mkdir(parents=True, exist_ok=True)
+    with pytest.raises(ValueError, match=r"should end with '/'"):
+        tarball_from_file(model_path, write_dest, "wrong")
+    tbf = tarball_from_file(model_path, write_dest, "custom/") # forcing it into a partial temp directory with blobs subdir for tests
+    digest = tbf.layer_digest
+    for file in tmp_path.rglob('*'):
+        if file.is_file():
+            print(file)
+
+    checksum_from_disk = get_file_hash(write_dest / digest) # read the file
+    assert digest == checksum_from_disk # filename should match its digest
+
+    # explode the tar file in the root oftmp_path, for the scope of the test
+    with tarfile.open(write_dest / digest, "r") as tar:
+        tar.extractall(path=tmp_path)
+    print(Path(tmp_path / "custom" / "model.joblib"))
+    assert Path(tmp_path / "custom" / "model.joblib").exists()
+    assert Path(tmp_path / "custom" / "model.joblib").is_file()
 
 
 def test_targz_from_file(tmp_path):
@@ -130,3 +160,30 @@ def test_targz_from_file(tmp_path):
             print(file)
     tar_checksum_from_disk = get_file_hash(uncompressed_tar) # compute the digest for the .tar from the .tar.gz
     assert precomp_chskum == tar_checksum_from_disk # digests should match
+
+
+def test_targz_from_file_using_prefix(tmp_path):
+    """Test targz_from_file() function is able to produce the expected tar.gz layer blob in the oci-layout
+    but providing a custom prefix for the location of the file in the tar.gz.
+    """
+    model_path = sample_model_path() / "model.joblib"
+    write_dest = sha256_path(tmp_path)
+    write_dest.mkdir(parents=True, exist_ok=True)
+    with pytest.raises(ValueError, match=r"should end with '/'"):
+        targz_from_file(model_path, write_dest, "wrong")
+    tgz = targz_from_file(model_path, write_dest, "custom/") # forcing it into a partial temp directory with blobs subdir for tests
+    postcomp_chksum = tgz.layer_digest
+
+    for file in tmp_path.rglob('*'):
+        if file.is_file():
+            print(file)
+
+    checksum_from_disk = get_file_hash(write_dest / postcomp_chksum) # read the file
+    assert postcomp_chksum == checksum_from_disk # filename should match its digest
+
+    # explode the targz file in the root of tmp_path, for the scope of the test
+    with tarfile.open(write_dest / postcomp_chksum, "r:gz") as tar:
+        tar.extractall(path=tmp_path)
+    print(Path(tmp_path / "custom" / "model.joblib"))
+    assert Path(tmp_path / "custom" / "model.joblib").exists()
+    assert Path(tmp_path / "custom" / "model.joblib").is_file()
