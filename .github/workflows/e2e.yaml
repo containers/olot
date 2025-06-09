@@ -6,6 +6,11 @@ on:
       - main
   pull_request:
 
+env:
+  KIND_VERSION: 'v0.29.0'
+  KIND_NODE_IMAGE: 'kindest/node:v1.33.1'
+  PYTHON_VERSION: '3.9'
+
 jobs:
   e2e-skopeo:
     name: E2E using Skopeo
@@ -20,10 +25,16 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
-        python-version: '3.9' 
+        python-version: ${{ env.PYTHON_VERSION }}
     - name: Install Poetry
       run: |
         pipx install poetry
+    - name: Install-only specific KinD version (so it's up-to-date)
+      uses: helm/kind-action@v1
+      with:
+        version: ${{ env.KIND_VERSION }}
+        node_image: ${{ env.KIND_NODE_IMAGE }}
+        install_only: true
     - name: Install dependencies
       run: |
         make install
@@ -116,10 +127,16 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
-        python-version: '3.9' 
+        python-version: ${{ env.PYTHON_VERSION }}
     - name: Install Poetry
       run: |
         pipx install poetry
+    - name: Install-only specific KinD version (so it's up-to-date)
+      uses: helm/kind-action@v1
+      with:
+        version: ${{ env.KIND_VERSION }}
+        node_image: ${{ env.KIND_NODE_IMAGE }}
+        install_only: true
     - name: Install dependencies
       run: |
         make install
@@ -139,10 +156,16 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
-        python-version: '3.9' 
+        python-version: ${{ env.PYTHON_VERSION }}
     - name: Install Poetry
       run: |
         pipx install poetry
+    - name: Install-only specific KinD version (so it's up-to-date)
+      uses: helm/kind-action@v1
+      with:
+        version: ${{ env.KIND_VERSION }}
+        node_image: ${{ env.KIND_NODE_IMAGE }}
+        install_only: true
     - name: Install dependencies
       run: |
         make install
