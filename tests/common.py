@@ -4,10 +4,13 @@ import gzip
 import shutil
 from olot.utils.files import HashingWriter, get_file_hash, tar_filter_fn
 
+def get_test_path() -> Path: # this must be inside tests/common.py file, ie just under tests/ directory of the repo.
+    return Path(__file__).parent
+
 def get_test_data_path() -> Path:
     """prefixed with get_ to avoid strict enforcement/getting picked up by pytest
     """
-    return Path(__file__).parent / "data"
+    return get_test_path() / "data"
 
 def sample_model_path() -> Path:
     return get_test_data_path() / "sample-model"

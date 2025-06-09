@@ -64,13 +64,14 @@ def tar_filter_fn(input: tarfile.TarInfo) -> tarfile.TarInfo :
     return input
 
 
-def tarball_from_file(file_path: Path, dest: Path) -> LayerStats:
+def tarball_from_file(file_path: Path, dest: Path, prefix: str = "/models/") -> LayerStats:
     """
     Creates a tarball from a specified file, storing it in the destination directory with a name based on its checksum.
 
     Args:
         file_path (Path): The path of the file or directory to be added to the tar archive.
         dest (Path): The destination directory where the tarball will be saved.
+        prefix (str): The prefix path for the file_path in the tar. Defaults to `/models/` (KServe ModelCar).
 
     Returns:
         LayerStats: including the checksum (SHA-256) of the tarball, which is also used as the filename.
@@ -82,7 +83,9 @@ def tarball_from_file(file_path: Path, dest: Path) -> LayerStats:
     """
     if not file_path.exists():
         raise ValueError(f"Input file '{file_path}' does not exist.")
-
+    if not prefix.endswith('/'):
+        raise ValueError(f"Supplied prefix {prefix} should end with '/'.")
+    
     os.makedirs(dest, exist_ok=True)
     temp_dest = dest / "temp"
 
@@ -90,7 +93,7 @@ def tarball_from_file(file_path: Path, dest: Path) -> LayerStats:
         with open(temp_dest, "wb") as temp_file:
             writer = HashingWriter(temp_file)
             with tarfile.open(fileobj=writer, mode="w") as tar: # type: ignore[call-overload]
-                tar.add(file_path, arcname="/models/"+file_path.name, filter=tar_filter_fn)
+                tar.add(file_path, arcname=prefix+file_path.name, filter=tar_filter_fn)
         checksum = writer.hash_func.hexdigest()
         os.rename(temp_dest, dest / checksum)
         return LayerStats(checksum, checksum, file_path.name)
@@ -100,7 +103,7 @@ def tarball_from_file(file_path: Path, dest: Path) -> LayerStats:
         raise OSError(f"File operation failed: {e}") from e
 
 
-def targz_from_file(file_path: Path, dest: Path) -> LayerStats:
+def targz_from_file(file_path: Path, dest: Path, prefix: str = "/models/") -> LayerStats:
     """
     Creates a gzipped tarball from the specified file, storing it in the destination directory.
     The tarball's filename is based on the post-compression checksum.
@@ -109,6 +112,7 @@ def targz_from_file(file_path: Path, dest: Path) -> LayerStats:
         file_path (Path): The path of the file or directory to be compressed.
         dest (Path): The destination directory where the gzipped tarball will be saved. If the directory
                      does not exist, it will be created.
+        prefix (str): The prefix path for the file_path in the tar. Defaults to `/models/` (KServe ModelCar).
 
     Returns:
         LayerStats: containing:
@@ -122,6 +126,8 @@ def targz_from_file(file_path: Path, dest: Path) -> LayerStats:
     """
     if not file_path.exists():
         raise ValueError(f"Input file '{file_path}' does not exist.")
+    if not prefix.endswith('/'):
+        raise ValueError(f"Supplied prefix {prefix} should end with '/'.")
 
     os.makedirs(dest, exist_ok=True)
     temp_dest = dest / "temp"
@@ -132,7 +138,7 @@ def targz_from_file(file_path: Path, dest: Path) -> LayerStats:
             with gzip.GzipFile(fileobj=writer, mode="wb", mtime=0, compresslevel=6) as gz: # type: ignore[call-overload]
                 inner_writer = HashingWriter(gz)
                 with tarfile.open(fileobj=inner_writer, mode="w") as tar: # type: ignore[call-overload]
-                    tar.add(file_path, arcname="/models/"+file_path.name, filter=tar_filter_fn)
+                    tar.add(file_path, arcname=prefix+file_path.name, filter=tar_filter_fn)
         precompress_checksum = inner_writer.hash_func.hexdigest()
         postcompress_checksum = writer.hash_func.hexdigest()
         os.rename(temp_dest, dest / postcompress_checksum)
