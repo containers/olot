@@ -4,11 +4,13 @@ import gzip
 import shutil
 from olot.utils.files import HashingWriter, get_file_hash, tar_filter_fn
 
-def test_data_path() -> Path:
+def get_test_data_path() -> Path:
+    """prefixed with get_ to avoid strict enforcement/getting picked up by pytest
+    """
     return Path(__file__).parent / "data"
 
 def sample_model_path() -> Path:
-    return test_data_path() / "sample-model"
+    return get_test_data_path() / "sample-model"
 
 def sha256_path(base_path: Path) -> Path:
     return base_path / "blobs" / "sha256"
