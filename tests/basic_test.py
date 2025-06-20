@@ -3,11 +3,12 @@ from pathlib import Path
 import shutil
 from typing import Dict
 
-from olot.basics import RemoveOriginals, crawl_ocilayout_blobs_to_extract, crawl_ocilayout_indexes, crawl_ocilayout_manifests, oci_layers_on_top
+from olot.basics import RemoveOriginals, crawl_ocilayout_blobs_to_extract, crawl_ocilayout_indexes, crawl_ocilayout_manifests, oci_layers_on_top, write_empty_config_in_ocilayoyt
 
 from olot.oci.oci_config import OCIManifestConfig
 from olot.oci.oci_image_index import OCIImageIndex, read_ocilayout_root_index
 from olot.oci.oci_image_manifest import OCIImageManifest
+from olot.utils.types import compute_hash_of_str
 from tests.common import sample_model_path, get_test_data_path
 
 
@@ -155,6 +156,19 @@ def test_oci_layers_on_top_without_remove(tmp_path: Path):
     for model in models:
         assert model.exists()
     assert modelcard.exists()
+
+
+def test_write_empty_oci_config(tmp_path: Path):
+    """avoid limitation of skopeo that can't read inline empty config
+    """
+    oci_layout_path = tmp_path
+    write_empty_config_in_ocilayoyt(oci_layout_path)
+
+    empty_config_path = oci_layout_path / "blobs" / "sha256" / "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    assert empty_config_path.exists()
+    with open(empty_config_path, "r") as f:
+        actual = compute_hash_of_str(f.read())
+    assert actual == "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
 
 
 def test_oci_layers_on_top_single_manifest_and_check_annotations(tmp_path: Path):
