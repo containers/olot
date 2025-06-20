@@ -217,6 +217,15 @@ def crawl_ocilayout_manifests(ocilayout: Path, ocilayout_indexes: Dict[str, OCII
     return filtered
 
 
+def write_empty_config_in_ocilayoyt(ocilayout: Path):
+    """small utility to avoid limitation of skopeo that can't read inline empty config
+    """
+    blobs_path = ocilayout / "blobs" / "sha256"
+    blobs_path.mkdir(parents=True, exist_ok=True)
+    with open(blobs_path / "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a", 'w') as f:
+        f.write("{}")
+
+
 def crawl_ocilayout_indexes(ocilayout: Path, ocilayout_root_index: OCIImageIndex) -> Dict[str, OCIImageIndex] :
     ocilayout_indexes: Dict[str, OCIImageIndex] = {}
     for m in ocilayout_root_index.manifests:
