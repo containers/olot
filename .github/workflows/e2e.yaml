@@ -241,7 +241,7 @@ jobs:
         pipx install dist/olot-*.whl
     - name: Check an embedded oci-layout is created as expected
       run: |
-        python -c "import olot; olot.embedded_oci_layout.embedded_oci_layout('/tmp/embedded_oci_layout')"
-        ls -la /tmp/embedded_oci_layout
+        python -c "from olot.embedded_oci_layout import embedded_oci_layout; embedded_oci_layout('/tmp/embedded_oci_layout')"
+        find /tmp/embedded_oci_layout -type f -exec ls -la {} \;
         # Compare the contents of olot/embedded_oci_layout and /tmp/embedded_oci_layout
         diff -r olot/embedded_oci_layout /tmp/embedded_oci_layout
