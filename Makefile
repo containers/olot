@@ -4,7 +4,7 @@ install:
 	poetry install
 
 .PHONY: build
-build: install
+build: clean install olot/embedded_oci_layout/oci-layout
 	poetry build
 
 .PHONY: deploy-kind-cluster
@@ -34,3 +34,10 @@ lint: install
 .PHONY: mypy
 mypy: install
 	poetry run mypy .
+
+olot/embedded_oci_layout/oci-layout:
+	poetry run python olot/embedded_oci_layout.py
+
+.PHONY: clean
+clean:
+	rm -rf olot/embedded_oci_layout/

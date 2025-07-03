@@ -4,6 +4,12 @@ version = "0.1.9"
 description = "oci layers on top"
 authors = ["tarilabs <matteo.mortari@gmail.com>"]
 readme = "README.md"
+packages = [
+    {include = "olot"},
+]
+include = [
+    "olot/embedded_oci_layout/**/*",
+]
 
 
 [tool.poetry.dependencies]
