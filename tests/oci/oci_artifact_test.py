@@ -4,7 +4,7 @@ from olot.oci.oci_common import MediaTypes
 from olot.oci.oci_image_index import Manifest, OCIImageIndex
 from olot.oci.oci_image_layout import OCIImageLayout
 from olot.oci.oci_image_manifest import ContentDescriptor, create_oci_image_manifest, empty_config
-from olot.utils.files import tarball_from_file, targz_from_file
+from olot.utils.files import targz_from_file
 from olot.utils.types import compute_hash_of_str
 from tests.common import get_test_data_path, sample_model_path, file_checksums_with_compression, file_checksums_without_compression
 from olot.oci_artifact import create_blobs
