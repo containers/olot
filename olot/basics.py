@@ -8,15 +8,18 @@ import tarfile
 from typing import Dict, List, Sequence
 import typing
 
+from olot.modelpack.model_config import Model, ModelConfig, ModelDescriptor, ModelFS, Type
 from olot.oci.oci_config import HistoryItem, OCIManifestConfig
 
-from olot.oci.oci_image_index import OCIImageIndex, read_ocilayout_root_index
-from olot.oci.oci_image_manifest import OCIImageManifest, ContentDescriptor
+from olot.oci.oci_image_index import Manifest, OCIImageIndex, Platform, read_ocilayout_root_index
+from olot.oci.oci_image_manifest import OCIImageManifest, ContentDescriptor, create_oci_image_manifest
 from olot.oci.oci_image_layout import verify_ocilayout
 from olot.oci.oci_common import MediaTypes
 
 from olot.utils.files import LayerStats, handle_remove, tarball_from_file, targz_from_file
 from olot.utils.types import compute_hash_of_str
+
+from olot.modelpack import const as modelpack_consts
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +44,8 @@ def oci_layers_on_top(
         model_files: Sequence[os.PathLike],
         modelcard: typing.Union[os.PathLike, None] = None,
         *,
-        remove_originals: typing.Union[RemoveOriginals, None] = None):
+        remove_originals: typing.Union[RemoveOriginals, None] = None,
+        add_modelpack: typing.Union[bool, None] = None):
     """
     Add contents to an oci-layout directory as new blob layers
 
@@ -50,6 +54,7 @@ def oci_layers_on_top(
         model_files: PathLike array to be added as new blob layers.
         modelcard: PathLike of the README.md of the ModelCarD, will be added as the last layer with compression and annotations.
         remove_originals: whether to remove the original content files after having added the layers, default: None.
+        add_modelpack: whether to add a ModelPack manifest to the oci-layout only if not already present, default: None.
     """
     if not isinstance(ocilayout, Path):
         ocilayout = Path(ocilayout)
@@ -61,6 +66,8 @@ def oci_layers_on_top(
     ocilayout_indexes: Dict[str, OCIImageIndex] = crawl_ocilayout_indexes(ocilayout, ocilayout_root_index)
     ocilayout_manifests: Dict[str, OCIImageManifest] = crawl_ocilayout_manifests(ocilayout, ocilayout_indexes, ocilayout_root_index)
     new_layers: Dict[str, LayerStats] = {} # layer digest : diff_id
+
+    add_modelpack = sanitize_add_modelpack(add_modelpack, ocilayout_manifests)
 
     sha256_path = ocilayout / "blobs" / "sha256"
     for model in model_files:
@@ -134,6 +141,9 @@ def oci_layers_on_top(
         new_ocilayout_manifests[manifest_hash] = manifest_json_hash
         manifest_hash = manifest_json_hash
     pprint(new_ocilayout_manifests)
+    if add_modelpack:
+        modelpack_manifest_hash = add_modelpack_manifest(ocilayout, new_layers)
+    
     new_ocilayout_indexes: Dict[str, str] = {}
     for index_hash, index in ocilayout_indexes.items():
         print(index_hash, index.mediaType)
@@ -146,6 +156,22 @@ def oci_layers_on_top(
                 m.size = os.stat(ocilayout / "blobs" / "sha256" / lookup_new_hash).st_size
             else:
                 logger.info("manifest %s was unchanged", digest)
+        if add_modelpack:
+            if modelpack_manifest_hash in [m.digest.removeprefix("sha256:") for m in index.manifests]:
+                raise ValueError(f"ModelPack manifest already present in Index {index_hash} while add_modelpack=True")
+            else:
+                logger.debug("adding ModelPack manifest to the index %s", index_hash)
+                index.manifests.append(Manifest(
+                    mediaType=MediaTypes.manifest,
+                    digest="sha256:"+modelpack_manifest_hash,
+                    size=os.stat(ocilayout / "blobs" / "sha256" / modelpack_manifest_hash).st_size,
+                    urls=None,
+                    platform=Platform( # type: ignore[call-arg]
+                        architecture="unknown",
+                        os="unknown",
+                    ),
+                    annotations={"io.opendatahub.author": "olot", "io.opendatahub.modelcar.manifest.type":"modelpack"},
+                ))
         index_json = index.model_dump_json(exclude_none=True)
         with open(ocilayout / "blobs" / "sha256" / index_hash, "w") as idxf:
             idxf.write(index_json)
@@ -154,6 +180,7 @@ def oci_layers_on_top(
         print(f"Renamed Index from: {index_hash} to {index_json_hash}")
         new_ocilayout_indexes[index_hash] = index_json_hash
     pprint(new_ocilayout_indexes)
+    
     for entry in ocilayout_root_index.manifests:
         if entry.mediaType == MediaTypes.index:
             lookup_new_hash = new_ocilayout_indexes[entry.digest.removeprefix("sha256:")]
@@ -171,8 +198,86 @@ def oci_layers_on_top(
                 logger.info("manifest %s was unchanged", digest)
         else:
             raise ValueError(f"unknown root index mediaType {entry.mediaType}")
+    if add_modelpack:
+        if modelpack_manifest_hash in [m.digest.removeprefix("sha256:") for m in ocilayout_root_index.manifests]:
+            raise ValueError("ModelPack manifest already present in Root index in oci-layout, while add_modelpack=True")
+        else:
+            logger.debug("adding ModelPack manifest to the root index")
+            ocilayout_root_index.manifests.append(Manifest(
+                mediaType=MediaTypes.manifest,
+                digest="sha256:"+modelpack_manifest_hash,
+                size=os.stat(ocilayout / "blobs" / "sha256" / modelpack_manifest_hash).st_size,
+                urls=None,
+                platform=Platform( # type: ignore[call-arg]
+                    architecture="unknown",
+                    os="unknown",
+                ),
+                annotations={"io.opendatahub.author": "olot", "io.opendatahub.modelcar.manifest.type":"modelpack"},
+            ))
     with open(ocilayout / "index.json", "w") as root_idx_f:
         root_idx_f.write(ocilayout_root_index.model_dump_json(exclude_none=True))
+
+
+def add_modelpack_manifest(ocilayout: Path, new_layers: Dict[str, LayerStats]) -> str:
+    """add a ModelPack manifest to the oci-layout
+    """
+    model_config = Model(
+        descriptor=ModelDescriptor(name=None), # eventually config and metadata will be provided programmatically
+        modelfs=ModelFS(type=Type.layers, diffIds=list(b.diff_id for b in new_layers.values())),
+        config=ModelConfig(),
+    )
+    model_config_json = model_config.model_dump_json(exclude_none=True)
+    model_config_hash = compute_hash_of_str(model_config_json)
+    with open(ocilayout / "blobs" / "sha256" / model_config_hash, "w") as mpcf:
+        mpcf.write(model_config_json)
+    cds = []
+    for layer in new_layers.values():
+        layer_digest = layer.layer_digest
+        layer_stat = os.stat(ocilayout / "blobs" / "sha256" / layer_digest)
+        size = layer_stat.st_size
+        la = {"org.opencontainers.image.title": layer.title}
+        is_modelcard = layer_digest != layer.diff_id
+        mt = modelpack_consts.MEDIATYPEMODELDOCGZIP if is_modelcard else modelpack_consts.MEDIATYPEMODELWEIGHT
+        cd = ContentDescriptor(
+            mediaType=mt,
+            digest="sha256:"+layer_digest,
+            size=size,
+            urls=None,
+            data=None,
+            artifactType=None,
+            annotations=la
+        )
+        cds.append(cd)
+    manifest = create_oci_image_manifest(
+        mediaType=MediaTypes.manifest, # default already, but for expliciting here Modelpack spec adherence
+        artifactType=modelpack_consts.ARTIFACTTYPEMODELMANIFEST,
+        config=ContentDescriptor(
+            mediaType=modelpack_consts.MEDIATYPEMODELCONFIG,
+            artifactType=None,
+            digest="sha256:"+model_config_hash,
+            size=os.stat(ocilayout / "blobs" / "sha256" / model_config_hash).st_size,
+            urls=None,
+            data=None,
+        ),
+        layers=cds
+    )
+    manifest_json = manifest.model_dump_json(exclude_none=True)
+    manifest_hash = compute_hash_of_str(manifest_json)
+    with open(ocilayout / "blobs" / "sha256" / manifest_hash, "w") as mf:
+        mf.write(manifest_json)
+    return manifest_hash
+
+
+def sanitize_add_modelpack(add_modelpack: typing.Union[bool, None], ocilayout_manifests: Dict[str, OCIImageManifest]) -> bool:
+    """sanitize the add_modelpack flag to avoid adding a ModelPack manifest if it's already present in the oci-layout
+    """
+    if add_modelpack:
+        logger.debug("checking if ModelPack manifest is present in the oci-layout")
+        for manifest_hash, manifest in ocilayout_manifests.items():
+            if manifest.artifactType == modelpack_consts.ARTIFACTTYPEMODELMANIFEST:
+                logger.warning("ModelPack manifest already present in the oci-layout as %s; will IGNORE add_modelpack=True", manifest_hash)
+                return False
+    return add_modelpack or False # leave unchanged unless of sanitization requirements above, if None just return False
 
 
 def check_manifest(manifest: OCIImageManifest, config: OCIManifestConfig):
