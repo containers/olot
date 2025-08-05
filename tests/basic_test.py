@@ -11,6 +11,8 @@ from olot.oci.oci_image_manifest import OCIImageManifest
 from olot.utils.types import compute_hash_of_str
 from tests.common import sample_model_path, get_test_data_path
 
+from olot.modelpack import const as modelpack_consts
+
 
 def test_remove_originals():
     assert [e.value for e in RemoveOriginals] == ["default", "all"]
@@ -227,3 +229,121 @@ def test_oci_layers_on_top_single_manifest_and_check_annotations(tmp_path: Path)
         assert mc.history
         assert len(mc.history) == 5 # check we preserved also previous history, 2 elements, + 3 new history items for the 3 new layers
         assert len(list(x for x in mc.history if not x.empty_layer)) == len(manifest0.layers)
+
+
+def test_add_modelpack_manifest_using_ocilayout3(tmp_path: Path):
+    """add modelpack manifest to oci-layout, using ocilayout3 as the base oci-layout
+    """
+    test_sample_model = sample_model_path()
+    test_ocilayout3 = get_test_data_path() / "ocilayout3"
+    target_ocilayout = tmp_path / "myocilayout"
+    shutil.copytree(test_ocilayout3, target_ocilayout, copy_function=shutil.copy2)
+    target_model = tmp_path / "models"
+    shutil.copytree(test_sample_model, target_model, copy_function=shutil.copy2)
+    print(os.listdir(target_model))
+
+    models = [
+        target_model / "model.joblib",
+        target_model / "hello.md"
+    ]
+    for model in models:
+        assert model.exists()
+    modelcard = target_model / "README.md"
+    assert modelcard.exists()
+
+    ocilayout_root_index = read_ocilayout_root_index(target_ocilayout)
+    assert len(ocilayout_root_index.manifests) == 3
+    ocilayout_indexes: Dict[str, OCIImageIndex] = crawl_ocilayout_indexes(target_ocilayout, ocilayout_root_index)
+    assert len(ocilayout_indexes) == 1
+    ocilayout_manifests: Dict[str, OCIImageManifest] = crawl_ocilayout_manifests(target_ocilayout, ocilayout_indexes, ocilayout_root_index)
+    assert len(ocilayout_manifests) == 2
+
+    # add modelpack manifest
+    oci_layers_on_top(target_ocilayout, models, modelcard, add_modelpack=True)
+    print(target_ocilayout)
+    ocilayout_root_index = read_ocilayout_root_index(target_ocilayout)
+    assert len(ocilayout_root_index.manifests) == 4 # as ocilayout3 is from oras, it add Index(1x), the Manifest(2x) of the base image, and the ModelPack Manifest(1x) for a total of 4
+    ocilayout_indexes = crawl_ocilayout_indexes(target_ocilayout, ocilayout_root_index)
+    assert len(ocilayout_indexes) == 1 
+    ocilayout_manifests = crawl_ocilayout_manifests(target_ocilayout, ocilayout_indexes, ocilayout_root_index)
+    assert len(ocilayout_manifests) == 3 # the two original base image manifest (2x), plus the ModelPack Manifest(1x)
+    # Find the ModelPack manifest
+    for digest, manifest in ocilayout_manifests.items():
+        if manifest.artifactType == modelpack_consts.ARTIFACTTYPEMODELMANIFEST:
+            modelpack_manifest = manifest
+            modelpack_manifest_digest = digest
+            print(modelpack_manifest_digest)
+            print(modelpack_manifest.model_dump_json(exclude_none=True))
+            break
+    assert modelpack_manifest is not None, "No manifest with artifactType == modelpack_consts.ARTIFACTTYPEMODELMANIFEST found"
+    assert modelpack_manifest.config.mediaType == modelpack_consts.MEDIATYPEMODELCONFIG
+    assert len(modelpack_manifest.layers) == 3
+    # Check that there is a manifest entry in ocilayout_root_index.manifests with the correct annotation and digest
+    for manifest_entry in ocilayout_root_index.manifests:
+        if manifest_entry.annotations and manifest_entry.annotations.get("io.opendatahub.modelcar.manifest.type") == "modelpack":
+            print(manifest_entry.model_dump_json(exclude_none=True))
+            assert manifest_entry.digest.removeprefix("sha256:") == modelpack_manifest_digest
+    # Check that there is a manifest entry in ocilayout_indexes.manifests with the correct annotation and digest
+    for idx in ocilayout_indexes.values():
+        for m in idx.manifests:
+            if m.annotations and m.annotations.get("io.opendatahub.modelcar.manifest.type") == "modelpack":
+                assert m.digest.removeprefix("sha256:") == modelpack_manifest_digest
+
+
+def test_add_modelpack_manifest_using_ocilayout2(tmp_path: Path):
+    """add modelpack manifest to oci-layout, using ocilayout2 as the base oci-layout
+    """
+    test_sample_model = sample_model_path()
+    test_ocilayout2 = get_test_data_path() / "ocilayout2"
+    target_ocilayout = tmp_path / "myocilayout"
+    shutil.copytree(test_ocilayout2, target_ocilayout, copy_function=shutil.copy2)
+    target_model = tmp_path / "models"
+    shutil.copytree(test_sample_model, target_model, copy_function=shutil.copy2)
+    print(os.listdir(target_model))
+
+    models = [
+        target_model / "model.joblib",
+        target_model / "hello.md"
+    ]
+    for model in models:
+        assert model.exists()
+    modelcard = target_model / "README.md"
+    assert modelcard.exists()
+
+    ocilayout_root_index = read_ocilayout_root_index(target_ocilayout)
+    assert len(ocilayout_root_index.manifests) == 1
+    ocilayout_indexes: Dict[str, OCIImageIndex] = crawl_ocilayout_indexes(target_ocilayout, ocilayout_root_index)
+    assert len(ocilayout_indexes) == 1
+    ocilayout_manifests: Dict[str, OCIImageManifest] = crawl_ocilayout_manifests(target_ocilayout, ocilayout_indexes, ocilayout_root_index)
+    assert len(ocilayout_manifests) == 2
+
+    # add modelpack manifest
+    oci_layers_on_top(target_ocilayout, models, modelcard, add_modelpack=True)
+    print(target_ocilayout)
+    ocilayout_root_index = read_ocilayout_root_index(target_ocilayout)
+    assert len(ocilayout_root_index.manifests) == 2 # as ocilayout2 is from skopeo, we have the ref to the Index(1x), and added here the ModelPack Manifest(1x) for a total of 2
+    ocilayout_indexes = crawl_ocilayout_indexes(target_ocilayout, ocilayout_root_index)
+    assert len(ocilayout_indexes) == 1 
+    ocilayout_manifests = crawl_ocilayout_manifests(target_ocilayout, ocilayout_indexes, ocilayout_root_index)
+    assert len(ocilayout_manifests) == 3 # the two original base image manifest (2x), plus the ModelPack Manifest(1x)
+    # Find the ModelPack manifest
+    modelpack_manifest = None
+    modelpack_manifest_digest = None
+    for digest, manifest in ocilayout_manifests.items():
+        print(manifest.artifactType)
+        if manifest.artifactType == modelpack_consts.ARTIFACTTYPEMODELMANIFEST:
+            modelpack_manifest = manifest
+            modelpack_manifest_digest = digest
+            break
+    assert modelpack_manifest is not None, "No manifest with artifactType == modelpack_consts.ARTIFACTTYPEMODELMANIFEST found"
+    assert modelpack_manifest.config.mediaType == modelpack_consts.MEDIATYPEMODELCONFIG
+    assert len(modelpack_manifest.layers) == 3
+    # Check that there is a manifest entry in ocilayout_root_index.manifests with the correct annotation and digest
+    for manifest_entry in ocilayout_root_index.manifests:
+        if manifest_entry.annotations and manifest_entry.annotations.get("io.opendatahub.modelcar.manifest.type") == "modelpack":
+            assert manifest_entry.digest.removeprefix("sha256:") == modelpack_manifest_digest
+    # Check that there is a manifest entry in ocilayout_indexes.manifests with the correct annotation and digest
+    for idx in ocilayout_indexes.values():
+        for m in idx.manifests:
+            if m.annotations and m.annotations.get("io.opendatahub.modelcar.manifest.type") == "modelpack":
+                assert m.digest.removeprefix("sha256:") == modelpack_manifest_digest

@@ -42,3 +42,21 @@ def test_model_deserialization_minimal():
     assert deserialized.descriptor.version == model.descriptor.version
     assert deserialized.modelfs.type == model.modelfs.type
     assert deserialized.modelfs.diffIds == model.modelfs.diffIds
+
+
+def test_model_deserialization_barely_minimal():
+    """Test that Model can deserialize a barely minimal JSON structure."""
+    json_data = {
+        "descriptor": {},
+        "config": {},
+        "modelfs": {
+            "type": "layers",
+            "diffIds": [
+                "sha256:1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"
+            ]
+        }
+    }
+    model = Model.model_validate(json_data)
+    
+    assert model is not None
+    assert isinstance(model, Model)
