@@ -58,8 +58,10 @@ jobs:
         poetry run olot $IMAGE_DIR --modelcard tests/data/sample-model/README.md tests/data/sample-model/model.joblib
         # copy modelcar from oci-layout to the local docker registry
         skopeo copy --tls-verify=false --multi-arch all oci:${IMAGE_DIR}:latest docker://${OCI_REGISTRY_DESTINATION}
+        skopeo inspect --tls-verify=false --raw docker://localhost:5001/nstestorg/modelcar | jq .
         # make sure the annotation is present
         digest=$(skopeo inspect --tls-verify=false --raw docker://localhost:5001/nstestorg/modelcar | jq -r '.manifests[] | select(.platform.architecture == "amd64") | .digest')
+        skopeo inspect --tls-verify=false docker://${OCI_REGISTRY_DESTINATION}@$digest --raw | jq .
         skopeo inspect --tls-verify=false docker://${OCI_REGISTRY_DESTINATION}@$digest --raw | jq -e '.layers | last | has("annotations")'
         # tag amd64 as modelcar:v1 and load image in KinD cluster
         skopeo copy --src-tls-verify=false docker://localhost:5001/nstestorg/modelcar@$digest docker-daemon:localhost:5001/nstestorg/modelcar:v1
@@ -90,18 +92,94 @@ jobs:
         skopeo copy --multi-arch all docker://${OCI_REGISTRY_SOURCE} oci:${IMAGE_DIR}:latest
         poetry run olot $IMAGE_DIR --modelcard tests/data/sample-model/README.md tests/data/sample-model/model.joblib
         skopeo copy --tls-verify=false --multi-arch all oci:${IMAGE_DIR}:latest docker://${OCI_REGISTRY_DESTINATION}
+        skopeo inspect --tls-verify=false --raw docker://localhost:5001/nstestorg/modelcar | jq .
         digest=$(skopeo inspect --tls-verify=false --raw docker://localhost:5001/nstestorg/modelcar2 | jq -r '.manifests[] | select(.platform.architecture == "amd64") | .digest')
         skopeo inspect --tls-verify=false docker://${OCI_REGISTRY_DESTINATION}@$digest --raw | jq -e '.layers | last | has("annotations")'
         # tag amd64 as modelcar2:v2 and load image in KinD cluster
         skopeo copy --src-tls-verify=false docker://localhost:5001/nstestorg/modelcar2@$digest docker-daemon:localhost:5001/nstestorg/modelcar2:v2
         kind load docker-image -n "olot-e2e" "localhost:5001/nstestorg/modelcar2:v2"
-    - name: Apply Isvc using Modelcar # since the enable modelcar restart controller pod, better guard the kubectl apply
+    - name: Apply Isvc using Modelcar # change Isvc and await for it to be ready again.
       run: |
         kubectl patch isvc/my-inference-service \
           --type='json' \
           -p='[{"op": "replace", "path": "/spec/predictor/model/storageUri", "value": "oci://localhost:5001/nstestorg/modelcar2:v2"}]'
         kubectl wait --for=condition=Ready isvc/my-inference-service --timeout=240s
         kubectl describe isvc/my-inference-service
+    - name: Basic testing of Isvc that has Modelcar
+      run: |
+        echo "Starting port-forward..."
+        kubectl port-forward svc/my-inference-service-predictor 8080:80 &
+        PID=$!
+        sleep 2
+        echo "I have launched port-forward in background with: $PID."
+        echo "Check that OIP return the expected name"
+        curl -s http://localhost:8080/v2/models | jq -e '.models | index("my-inference-service") != null'
+        echo "Check that OIP produces an Inference Prediction"
+        curl -s -H "Content-Type: application/json" -d @e2e/data/input0.json http://localhost:8080/v2/models/my-inference-service/infer | jq
+        curl -s -H "Content-Type: application/json" -d @e2e/data/input1.json http://localhost:8080/v2/models/my-inference-service/infer | jq
+        curl -s -H "Content-Type: application/json" -d @e2e/data/input4.json http://localhost:8080/v2/models/my-inference-service/infer | jq
+  e2e-skopeo-and-add-modelpack:
+    name: E2E using Skopeo and add-modelpack flag
+    needs: e2e-skopeo # run this test after the e2e-skopeo test has completed
+    # This test is to ensure that the add-modelpack flag is working as expected.
+    # - add a ModelPack manifest to the multi-archoci-layout, and then load the image in KinD.
+    # - check again that applying an Isvc using Modelcar is unaffected by testing that the Isvc is working as expected.
+    runs-on: ubuntu-24.04
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v5
+    - name: Install Skopeo
+      run: |
+        sudo apt-get update && sudo apt-get install skopeo
+        skopeo --version
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+    - name: Install Poetry
+      run: |
+        pipx install poetry
+    - name: Install-only specific KinD version (so it's up-to-date)
+      uses: helm/kind-action@v1
+      with:
+        version: ${{ env.KIND_VERSION }}
+        node_image: ${{ env.KIND_NODE_IMAGE }}
+        install_only: true
+    - name: Install dependencies
+      run: |
+        make install
+    - name: Create and install prerequisites in KinD cluster (but skip python E2E tests here)
+      run: |
+        make deploy-kind-cluster deploy-local-registry
+    - name: Deploy KServe
+      run: |
+        kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.16.1/cert-manager.yaml
+        e2e/repeat.sh kubectl apply --server-side -f https://github.com/kserve/kserve/releases/download/v0.14.0/kserve.yaml
+        e2e/repeat.sh kubectl apply --server-side -f https://github.com/kserve/kserve/releases/download/v0.14.0/kserve-cluster-resources.yaml
+        kubectl patch configmap/inferenceservice-config -n kserve --type=strategic -p '{"data": {"deploy": "{\"defaultDeploymentMode\": \"RawDeployment\"}"}}'
+        e2e/enable-modelcar.sh
+    - name: Run OLOT tutorial of README by adding a ModelPack manifest, and load image in KinD for amd64
+      run: | 
+        IMAGE_DIR=download
+        OCI_REGISTRY_SOURCE=quay.io/mmortari/hello-world-wait:latest
+        OCI_REGISTRY_DESTINATION=localhost:5001/nstestorg/modelcar
+        rm -rf $IMAGE_DIR
+        skopeo copy --multi-arch all docker://${OCI_REGISTRY_SOURCE} oci:${IMAGE_DIR}:latest
+        poetry run olot $IMAGE_DIR --add-modelpack --modelcard tests/data/sample-model/README.md tests/data/sample-model/model.joblib
+        # copy modelcar from oci-layout to the local docker registry
+        skopeo copy --tls-verify=false --multi-arch all oci:${IMAGE_DIR}:latest docker://${OCI_REGISTRY_DESTINATION}
+        skopeo inspect --tls-verify=false --raw docker://localhost:5001/nstestorg/modelcar | jq .
+        # make sure the annotation is present
+        skopeo inspect --tls-verify=false --raw docker://localhost:5001/nstestorg/modelcar | jq -e '.manifests | any(.annotations."io.opendatahub.author" == "olot" and .annotations."io.opendatahub.modelcar.manifest.type" == "modelpack")'
+        digest=$(skopeo inspect --tls-verify=false --raw docker://localhost:5001/nstestorg/modelcar | jq -r '.manifests[] | select(.platform.architecture == "amd64") | .digest')
+        skopeo inspect --tls-verify=false docker://${OCI_REGISTRY_DESTINATION}@$digest --raw | jq -e '.layers | last | has("annotations")'
+        # tag amd64 as modelcar:v1 and load image in KinD cluster
+        skopeo copy --src-tls-verify=false docker://localhost:5001/nstestorg/modelcar@$digest docker-daemon:localhost:5001/nstestorg/modelcar:v1
+        kind load docker-image -n "olot-e2e" "localhost:5001/nstestorg/modelcar:v1"
+    - name: Apply Isvc using Modelcar # since the enable modelcar restart controller pod, better guard the kubectl apply
+      run: |
+        e2e/repeat.sh kubectl apply -f e2e/isvc-modelcar.yaml
+        kubectl wait --for=condition=Ready isvc/my-inference-service --timeout=240s
     - name: Basic testing of Isvc that has Modelcar
       run: |
         echo "Starting port-forward..."
