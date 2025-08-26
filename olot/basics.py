@@ -54,7 +54,7 @@ def oci_layers_on_top(
         model_files: PathLike array to be added as new blob layers.
         modelcard: PathLike of the README.md of the ModelCarD, will be added as the last layer with compression and annotations.
         remove_originals: whether to remove the original content files after having added the layers, default: None.
-        add_modelpack: whether to add a ModelPack manifest to the oci-layout only if not already present, default: None.
+        add_modelpack: whether to add a ModelPack manifest to the multi-arch oci-layout only if not already present, default: None.
     """
     if not isinstance(ocilayout, Path):
         ocilayout = Path(ocilayout)
@@ -67,7 +67,7 @@ def oci_layers_on_top(
     ocilayout_manifests: Dict[str, OCIImageManifest] = crawl_ocilayout_manifests(ocilayout, ocilayout_indexes, ocilayout_root_index)
     new_layers: Dict[str, LayerStats] = {} # layer digest : diff_id
 
-    add_modelpack = sanitize_add_modelpack(add_modelpack, ocilayout_manifests)
+    add_modelpack = check_and_sanitize_flag_add_modelpack(add_modelpack, ocilayout_indexes, ocilayout_manifests)
 
     sha256_path = ocilayout / "blobs" / "sha256"
     for model in model_files:
@@ -268,11 +268,16 @@ def add_modelpack_manifest(ocilayout: Path, new_layers: Dict[str, LayerStats]) -
     return manifest_hash
 
 
-def sanitize_add_modelpack(add_modelpack: typing.Union[bool, None], ocilayout_manifests: Dict[str, OCIImageManifest]) -> bool:
-    """sanitize the add_modelpack flag to avoid adding a ModelPack manifest if it's already present in the oci-layout
+def check_and_sanitize_flag_add_modelpack(add_modelpack: typing.Union[bool, None], ocilayout_indexes: Dict[str, OCIImageIndex], ocilayout_manifests: Dict[str, OCIImageManifest]) -> bool:
+    """Check and sanitize the add_modelpack flag
+    - check if the oci-layout contains an Index manifest for multi-arch, othewise fail: can't add a ModelPack manifest to a single-arch oci-layout
+      this is because a single-arch is a single OCI Image Manifest and not introducing an Index; hence, can't add a ModelPack manifest to the non-existing Index which is tagged (`:latest`) by the oci-layout root index
+    - sanitize the add_modelpack flag to avoid adding a ModelPack manifest if it's already present in the oci-layout
     """
     if add_modelpack:
-        logger.debug("checking if ModelPack manifest is present in the oci-layout")
+        if len(ocilayout_indexes) == 0:
+            raise ValueError("Can't add a ModelPack manifest to a single-arch oci-layout")
+        logger.debug("checking if ModelPack manifest is alreadypresent in the oci-layout")
         for manifest_hash, manifest in ocilayout_manifests.items():
             if manifest.artifactType == modelpack_consts.ARTIFACTTYPEMODELMANIFEST:
                 logger.warning("ModelPack manifest already present in the oci-layout as %s; will IGNORE add_modelpack=True", manifest_hash)

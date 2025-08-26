@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+import pytest
 import shutil
 from typing import Dict
 
@@ -347,3 +348,36 @@ def test_add_modelpack_manifest_using_ocilayout2(tmp_path: Path):
         for m in idx.manifests:
             if m.annotations and m.annotations.get("io.opendatahub.modelcar.manifest.type") == "modelpack":
                 assert m.digest.removeprefix("sha256:") == modelpack_manifest_digest
+
+
+def test_add_modelpack_manifest_using_ocilayout5(tmp_path: Path):
+    """attempt to add modelpack manifest to oci-layout, using ocilayout5 as the base oci-layout
+    which is a single-arch oci-layout, hence, should fail.
+    """
+    test_sample_model = sample_model_path()
+    test_ocilayout2 = get_test_data_path() / "ocilayout5"
+    target_ocilayout = tmp_path / "myocilayout"
+    shutil.copytree(test_ocilayout2, target_ocilayout, copy_function=shutil.copy2)
+    target_model = tmp_path / "models"
+    shutil.copytree(test_sample_model, target_model, copy_function=shutil.copy2)
+    print(os.listdir(target_model))
+
+    models = [
+        target_model / "model.joblib",
+        target_model / "hello.md"
+    ]
+    for model in models:
+        assert model.exists()
+    modelcard = target_model / "README.md"
+    assert modelcard.exists()
+
+    ocilayout_root_index = read_ocilayout_root_index(target_ocilayout)
+    assert len(ocilayout_root_index.manifests) == 1
+    ocilayout_indexes: Dict[str, OCIImageIndex] = crawl_ocilayout_indexes(target_ocilayout, ocilayout_root_index)
+    assert len(ocilayout_indexes) == 0
+    ocilayout_manifests: Dict[str, OCIImageManifest] = crawl_ocilayout_manifests(target_ocilayout, ocilayout_indexes, ocilayout_root_index)
+    assert len(ocilayout_manifests) == 1
+
+    # attempt to add modelpack manifest
+    with pytest.raises(ValueError, match="Can't add a ModelPack manifest to a single-arch oci-layout"):
+        oci_layers_on_top(target_ocilayout, models, modelcard, add_modelpack=True)
