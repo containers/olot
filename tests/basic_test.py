@@ -3,6 +3,7 @@ from pathlib import Path
 import pytest
 import shutil
 from typing import Dict
+import logging
 
 from olot.basics import RemoveOriginals, crawl_ocilayout_blobs_to_extract, crawl_ocilayout_indexes, crawl_ocilayout_manifests, oci_layers_on_top, write_empty_config_in_ocilayoyt
 
@@ -381,3 +382,39 @@ def test_add_modelpack_manifest_using_ocilayout5(tmp_path: Path):
     # attempt to add modelpack manifest
     with pytest.raises(ValueError, match="Can't add a ModelPack manifest to a single-arch oci-layout"):
         oci_layers_on_top(target_ocilayout, models, modelcard, add_modelpack=True)
+
+
+def test_modelcard_in_model_files_and_remove_originals(tmp_path: Path, caplog):
+    """put oci_layers_on_top under test with 'remove' option and modelcard in model_files
+    """
+    test_sample_model = sample_model_path()
+    test_ocilayout2 = get_test_data_path() / "ocilayout2"
+    target_ocilayout = tmp_path / "myocilayout"
+    shutil.copytree(test_ocilayout2, target_ocilayout, copy_function=shutil.copy2)
+    target_model = tmp_path / "models"
+    shutil.copytree(test_sample_model, target_model, copy_function=shutil.copy2)
+    print(os.listdir(target_model))
+
+    models = [
+        target_model / "model.joblib",
+        target_model / "hello.md",
+        target_model / ".." / "models"/ "README.md", # tricky just to account for malicious use or edge-cases too (in ModelCar each layer is a single file typically just under container /models/<file>, no sub-directory nesting)
+    ]
+    for model in models:
+        assert model.exists()
+    modelcard = target_model / "README.md"
+    assert modelcard.exists()
+
+    print("checking for simple warning:")
+    # Set log level to capture warnings
+    caplog.set_level(logging.WARNING)
+    oci_layers_on_top(target_ocilayout, models, modelcard)
+    assert "ModelCard detected in model_files, this will result in duplicated layers for the ModelCard (negligible, but not optimal)." in caplog.text
+
+    print("checking for remove_originals=RemoveOriginals.DEFAULT")
+    with pytest.raises(ValueError, match="ModelCard detected, while remove_originals flag is set; this is not allowed as it would remove the original ModelCard before having a chance of adding it as its proper layer."):
+        oci_layers_on_top(target_ocilayout, models, modelcard, remove_originals=RemoveOriginals.DEFAULT)
+
+    print("checking for remove_originals=RemoveOriginals.ALL")
+    with pytest.raises(ValueError, match="ModelCard detected, while remove_originals flag is set; this is not allowed as it would remove the original ModelCard before having a chance of adding it as its proper layer."):
+        oci_layers_on_top(target_ocilayout, models, modelcard, remove_originals=RemoveOriginals.ALL)
