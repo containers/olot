@@ -412,9 +412,9 @@ def test_modelcard_in_model_files_and_remove_originals(tmp_path: Path, caplog):
     assert "ModelCard detected in model_files, this will result in duplicated layers for the ModelCard (negligible, but not optimal)." in caplog.text
 
     print("checking for remove_originals=RemoveOriginals.DEFAULT")
-    with pytest.raises(ValueError, match="ModelCard detected, while remove_originals flag is set; this is not allowed as it would remove the original ModelCard before having a chance of adding it as its proper layer."):
+    with pytest.raises(ValueError, match="ModelCard detected in model_files, while remove_originals flag is set; this is not allowed as it would remove the original ModelCard before having a chance of adding it as its proper layer."):
         oci_layers_on_top(target_ocilayout, models, modelcard, remove_originals=RemoveOriginals.DEFAULT)
 
     print("checking for remove_originals=RemoveOriginals.ALL")
-    with pytest.raises(ValueError, match="ModelCard detected, while remove_originals flag is set; this is not allowed as it would remove the original ModelCard before having a chance of adding it as its proper layer."):
+    with pytest.raises(ValueError, match="ModelCard detected in model_files, while remove_originals flag is set; this is not allowed as it would remove the original ModelCard before having a chance of adding it as its proper layer."):
         oci_layers_on_top(target_ocilayout, models, modelcard, remove_originals=RemoveOriginals.ALL)

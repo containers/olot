@@ -76,7 +76,7 @@ def oci_layers_on_top(
     add_modelpack = check_and_sanitize_flag_add_modelpack(add_modelpack, ocilayout_indexes, ocilayout_manifests)
     if modelcard in model_files:
         if remove_originals:
-            raise ValueError("ModelCard detected, while remove_originals flag is set; this is not allowed as it would remove the original ModelCard before having a chance of adding it as its proper layer.")
+            raise ValueError("ModelCard detected in model_files, while remove_originals flag is set; this is not allowed as it would remove the original ModelCard before having a chance of adding it as its proper layer.")
         else:
             logger.warning("ModelCard detected in model_files, this will result in duplicated layers for the ModelCard (negligible, but not optimal).")
 
