@@ -6,7 +6,7 @@ from .basics import RemoveOriginals, oci_layers_on_top
 
 
 @click.command()
-@click.option("-m", "--modelcard", type=click.Path(exists=True, file_okay=True, dir_okay=False))
+@click.option("-m", "--modelcard", type=click.Path(exists=True, file_okay=True, dir_okay=False), help="file to be used for ModelCarD; if provided, make sure it's not part of [MODEL_FILES] arguments to avoid redundancies.")
 @click.option("--add-modelpack", is_flag=True)
 @click.argument('ocilayout', type=click.Path(exists=True, file_okay=False, dir_okay=True))
 @click.argument('model_files', nargs=-1)

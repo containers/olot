@@ -52,7 +52,7 @@ def oci_layers_on_top(
     Args:
         ocilayout: The oci-layout directory of the base image.
         model_files: PathLike array to be added as new blob layers.
-        modelcard: PathLike of the README.md of the ModelCarD, will be added as the last layer with compression and annotations.
+        modelcard: PathLike of the README.md of the ModelCarD, will be added as the last layer with compression and annotations. If indicated, it shouldn't be part of model_files.
         remove_originals: whether to remove the original content files after having added the layers, default: None.
         add_modelpack: whether to add a ModelPack manifest to the multi-arch oci-layout only if not already present, default: None.
     """
