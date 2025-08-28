@@ -74,13 +74,17 @@ def oci_layers_on_top(
         model = Path(model)
         new_layer = tarball_from_file(model, sha256_path)
         new_layers[new_layer.layer_digest] = new_layer
-        if remove_originals:
-            handle_remove(model)
     if modelcard is not None:
         new_layer = targz_from_file(Path(modelcard), sha256_path)
         new_layers[new_layer.layer_digest] = new_layer
-        if remove_originals == RemoveOriginals.ALL:
-            handle_remove(modelcard)
+
+    if remove_originals:
+        for model in model_files:
+            model = Path(model)
+            handle_remove(model)
+
+    if remove_originals == RemoveOriginals.ALL and modelcard is not None:
+        handle_remove(modelcard)
 
     new_ocilayout_manifests: Dict[str, str] = {}
     for manifest_hash, manifest in ocilayout_manifests.items():
