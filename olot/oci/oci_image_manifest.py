@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 from typing import Annotated, List, Optional, Dict
+import logging
 import os
 import subprocess
 from pathlib import Path
@@ -14,6 +15,8 @@ from pydantic import BaseModel, Field
 from olot.oci.oci_common import Urls, Keys, Values, MediaTypes, MediaType
 from olot.utils.types import Int64, Base64, Annotations
 from olot.utils.files import MIMETypes
+
+logger = logging.getLogger(__name__)
 
 # class MediaType(BaseModel):
 #     __root__: constr(
@@ -172,10 +175,10 @@ def get_file_media_type(file_path: os.PathLike) -> str:
         mime_type = result.stdout.decode('utf-8').strip()
         return mime_type
     except subprocess.CalledProcessError as e:
-        print(f"Error occurred while getting MIME type: {e}")
+        logger.warning("Error occurred while getting MIME type: %s", e)
         return MIMETypes.octet_stream
     except Exception as e:
-        print(f"Unexpected error: {e}")
+        logger.warning("Unexpected error: %s", e)
         return MIMETypes.octet_stream
 
 
