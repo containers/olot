@@ -1,3 +1,4 @@
+import logging
 from pathlib import Path
 import pathlib
 import shutil
@@ -8,6 +9,8 @@ import os
 
 ODH_MODELCAR_BASE_IMAGE = "quay.io/opendatahub/odh-modelcar-base-image:d59dabeedfbfca18eeeb6e24ea99700b46e163dc"
 EMBEDDED_OCI_LAYOUT_DIR = "embedded_oci_layout"
+
+logger = logging.getLogger(__name__)
 
 
 def copy_base_image_to_oci_layout(base_image: str, dest: typing.Union[str, os.PathLike]):
@@ -54,11 +57,11 @@ if __name__ == "__main__":
     
     os.makedirs(dest_dir, exist_ok=True)
     
-    print(f"Copying {ODH_MODELCAR_BASE_IMAGE} to OCI layout at {dest_dir}")
+    logger.info("Copying %s to OCI layout at %s", ODH_MODELCAR_BASE_IMAGE, dest_dir)
     try:
         result = copy_base_image_to_oci_layout(ODH_MODELCAR_BASE_IMAGE, dest_dir)
-        print(f"Successfully copied image to {dest_dir}")
-        print(f"Command completed with return code: {result.returncode}")
+        logger.info("Successfully copied image to %s", dest_dir)
+        logger.info("Command completed with return code: %s", result.returncode)
     except subprocess.CalledProcessError as e:
-        print(f"Error copying image: {e}")
+        logger.error("Error copying image: %s", e)
         exit(1)
