@@ -52,7 +52,7 @@ def oci_layers_on_top(
     Args:
         ocilayout: The oci-layout directory of the base image.
         model_files: PathLike array to be added as new blob layers.
-        modelcard: PathLike of the README.md of the ModelCarD, will be added as the last layer with compression and annotations.
+        modelcard: PathLike of the README.md of the ModelCarD, will be added as the last layer with compression and annotations. If indicated, it shouldn't be part of model_files.
         remove_originals: whether to remove the original content files after having added the layers, default: None.
         add_modelpack: whether to add a ModelPack manifest to the multi-arch oci-layout only if not already present, default: None.
     """
@@ -61,13 +61,24 @@ def oci_layers_on_top(
     if remove_originals:
         logger.info("Invoked with remove_originals=%s to delete original contents after adding as a blob layer.", remove_originals.value)
 
+    # Normalize each path in model_files and modelcard to ensure consistency
+    model_files = [Path(mf).resolve() for mf in model_files]
+    if modelcard is not None:
+        modelcard = Path(modelcard).resolve()
+
     verify_ocilayout(ocilayout)
     ocilayout_root_index: OCIImageIndex = read_ocilayout_root_index(ocilayout)
     ocilayout_indexes: Dict[str, OCIImageIndex] = crawl_ocilayout_indexes(ocilayout, ocilayout_root_index)
     ocilayout_manifests: Dict[str, OCIImageManifest] = crawl_ocilayout_manifests(ocilayout, ocilayout_indexes, ocilayout_root_index)
     new_layers: Dict[str, LayerStats] = {} # layer digest : diff_id
 
+    # check configuration is consistent
     add_modelpack = check_and_sanitize_flag_add_modelpack(add_modelpack, ocilayout_indexes, ocilayout_manifests)
+    if modelcard in model_files:
+        if remove_originals:
+            raise ValueError("ModelCard detected in model_files, while remove_originals flag is set; this is not allowed as it would remove the original ModelCard before having a chance of adding it as its proper layer.")
+        else:
+            logger.warning("ModelCard detected in model_files, this will result in duplicated layers for the ModelCard (negligible, but not optimal).")
 
     sha256_path = ocilayout / "blobs" / "sha256"
     for model in model_files:
