@@ -6,6 +6,7 @@ import tarfile
 from pathlib import Path
 import gzip
 import os
+from typing import List
 
 logger = logging.getLogger(__name__)
 
@@ -158,3 +159,47 @@ def handle_remove(path: os.PathLike):
         shutil.rmtree(path)
     else:
         os.remove(path)
+
+
+def walk_files_recursive(root_path: os.PathLike) -> List[str]:
+    """
+    Recursively walks a directory and returns all files as relative paths, skipping any symlinks.
+    
+    Args:
+        root_path: The root directory to walk recursively
+        
+    Returns:
+        List of relative file paths as strings
+        
+    Raises:
+        ValueError: If the provided path doesn't exist or isn't a directory
+        OSError: If an error occurs during directory traversal
+    """
+    if not isinstance(root_path, Path):
+        root_path = Path(root_path)
+    
+    if not root_path.exists():
+        raise ValueError(f"Path '{root_path}' does not exist")
+    
+    if not root_path.is_dir():
+        raise ValueError(f"Path '{root_path}' is not a directory")
+    
+    try:
+        relative_files = []
+        root_path_str = str(root_path)
+        
+        for dirpath, dirnames, filenames in os.walk(root_path_str):
+            # Skip symlink directories by removing them from dirnames
+            dirnames[:] = [d for d in dirnames if not os.path.islink(os.path.join(dirpath, d))]
+            
+            for filename in filenames:
+                full_file_path = os.path.join(dirpath, filename)
+                # Skip symlink files
+                if not os.path.islink(full_file_path):
+                    file_path = Path(full_file_path)
+                    relative_path = file_path.relative_to(root_path)
+                    relative_files.append(str(relative_path))
+        
+        return sorted(relative_files)  # Return sorted for consistent ordering
+    except OSError as e:
+        raise OSError(f"Error walking directory '{root_path}': {e}") from e

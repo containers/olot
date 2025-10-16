@@ -401,4 +401,4 @@ def crawl_ocilayout_blobs_to_extract(ocilayout: Path,
 
 
 if __name__ == "__main__":
-    logger.debug("basics.py is not meant to be executed directly")
+    print("?")
