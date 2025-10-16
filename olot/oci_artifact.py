@@ -116,9 +116,8 @@ def create_simple_oci_artifact(source_path: Path, oci_layout_path: Path):
     blobs_path.mkdir(parents=True, exist_ok=True)
 
     mc = OCIManifestConfig(os="unknown",
-                           os_version=None,
-                           os_features=None,
                            architecture="unknown",
+                           **{"os.version": None, "os.features": None},
                            rootfs=Rootfs(type=Type.layers, diff_ids=[]),
                            history=[],
                            )
