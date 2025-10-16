@@ -1,4 +1,3 @@
-import shutil
 from olot.backend.oras_cp import oras_push
 from olot.basics import write_empty_config_in_ocilayoyt
 from olot.oci.oci_common import MediaTypes

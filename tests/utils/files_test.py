@@ -3,7 +3,6 @@ import tarfile
 import gzip
 import shutil
 import os
-from typing_extensions import assert_type
 
 import pytest
 from olot.utils.files import get_file_hash, HashingWriter, tarball_from_file, targz_from_file, walk_files_recursive
@@ -269,7 +268,7 @@ def test_walk_files_recursive_with_symlinks(tmp_path):
     assert result == expected
 
 
-def test_walk_files_recursive_with_symlinks(tmp_path):
+def test_walk_files_recursive_with_different_path_types(tmp_path):
     """Test walk_files_recursive() with different path types"""
     (tmp_path / "test_file.txt").write_text("test")
     

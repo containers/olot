@@ -1,7 +1,6 @@
 from pathlib import Path
 import os
 import json
-import argparse
 from typing import List
 
 from olot.basics import write_empty_config_in_ocilayoyt
