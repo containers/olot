@@ -5,7 +5,7 @@ from typing import List
 
 from olot.basics import write_empty_config_in_ocilayoyt
 from olot.oci.oci_image_manifest import ContentDescriptor, create_oci_image_manifest, create_manifest_layers, empty_config
-from olot.oci.oci_image_layout import OCIImageLayout, create_ocilayout
+from olot.oci.oci_image_layout import ImageLayoutVersion, OCIImageLayout, create_ocilayout
 from olot.oci.oci_common import MediaTypes, Values
 from olot.oci.oci_image_index import Manifest, OCIImageIndex, create_oci_image_index
 from olot.utils.files import MIMETypes, tarball_from_file, targz_from_file, walk_files_recursive
@@ -143,17 +143,22 @@ def create_simple_oci_artifact(source_path: Path, oci_layout_path: Path):
     with open(manifest_blob_path, "w") as f:
         f.write(manifest.model_dump_json(indent=2, exclude_none=True))
     
-    layout = OCIImageLayout(imageLayoutVersion="1.0.0")
+    layout = OCIImageLayout(imageLayoutVersion=ImageLayoutVersion.field_1_0_0)
     with open(oci_layout_path / "oci-layout", "w") as f:
         f.write(layout.model_dump_json(indent=2, exclude_none=True))
 
     index = OCIImageIndex(schemaVersion=2,
+                          mediaType=MediaTypes.index,
                           manifests=[
                               Manifest(mediaType=MediaTypes.manifest,
                                        size=os.stat(manifest_blob_path).st_size,
                                        digest="sha256:"+manifest_SHA,
-                                       annotations={"org.opencontainers.image.ref.name": "latest"})
-                          ])
+                                       annotations={"org.opencontainers.image.ref.name": "latest"},
+                                       urls=None,
+                                       )
+                          ],
+                          artifactType=None,
+                          )
     with open(oci_layout_path / "index.json", "w") as f:
         f.write(index.model_dump_json(indent=2, exclude_none=True))
 

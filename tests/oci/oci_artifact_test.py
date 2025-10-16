@@ -141,7 +141,7 @@ def test_full_artifact_with_directory_structure(tmp_path: Path):
     create_simple_oci_artifact(lmeh_path, ocilayout_path)
 
     # now let's use oras-copy to transfer from oci-layout to another oci-layout (instead of a OCI registry)
-    oras_push(ocilayout_path, tmp_path / "output:latest", ["--to-oci-layout"])
+    oras_push(ocilayout_path, str(tmp_path / "output:latest"), ["--to-oci-layout"])
     print(tmp_path)
 
     # iterate the blobs so to include manifest and config in addition to the layers
