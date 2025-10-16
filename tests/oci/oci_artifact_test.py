@@ -1,10 +1,11 @@
+import shutil
 from olot.backend.oras_cp import oras_push
 from olot.basics import write_empty_config_in_ocilayoyt
 from olot.oci.oci_common import MediaTypes
 from olot.oci.oci_image_index import Manifest, OCIImageIndex
 from olot.oci.oci_image_layout import OCIImageLayout
 from olot.oci.oci_image_manifest import ContentDescriptor, create_oci_image_manifest, empty_config
-from olot.utils.files import targz_from_file
+from olot.utils.files import targz_from_file, walk_files_recursive
 from olot.utils.types import compute_hash_of_str
 from tests.common import get_test_data_path, sample_model_path, file_checksums_with_compression, file_checksums_without_compression
 from olot.oci_artifact import create_blobs
@@ -123,3 +124,19 @@ def test_full_artifact(tmp_path):
             f"File content mismatch for {filename}: original size={len(original_content)}, output size={len(output_content)}"
         assert len(original_content) == len(output_content), \
             f"File size mismatch for {filename}: original={len(original_content)}, output={len(output_content)}"
+
+
+def test_full_artifact_with_directory_structure(tmp_path: Path):
+    ocilayout_path = tmp_path / "oci-layout"
+    ocilayout_path.mkdir(parents=True, exist_ok=True)
+    
+    lmeh_path = get_test_data_path() / "lmeh2"
+    walked_files = walk_files_recursive(lmeh_path)
+    expected_walked_files = [
+        Path("README.md"),
+        Path("lmeh/results_2025-04-30T18-24-41.082644.json"),
+        Path("lmeh/samples_gsm8k_2025-04-30T18-24-41.082644.jsonl"),
+        Path("some.log"),
+    ]
+    assert walked_files == expected_walked_files
+

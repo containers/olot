@@ -3,6 +3,7 @@ import tarfile
 import gzip
 import shutil
 import os
+from typing_extensions import assert_type
 
 import pytest
 from olot.utils.files import get_file_hash, HashingWriter, tarball_from_file, targz_from_file, walk_files_recursive
@@ -209,13 +210,19 @@ def test_walk_files_recursive_basic(tmp_path):
     result = walk_files_recursive(tmp_path)
     
     expected = [
-        "dir1/file3.md",
-        "dir1/subdir/file4.json", 
-        "dir2/file5.txt",
-        "file1.txt",
-        "file2.py",
+        Path("dir1/file3.md"),
+        Path("dir1/subdir/file4.json"), 
+        Path("dir2/file5.txt"),
+        Path("file1.txt"),
+        Path("file2.py"),
     ]
     assert result == expected
+    assert result[0].name == "file3.md"
+    assert str(result[0].parent) == "dir1"
+    assert result[1].name == "file4.json"
+    assert str(result[1].parent) == "dir1/subdir"
+    assert result[2].name == "file5.txt"
+    assert str(result[2].parent) == "dir2"
 
 
 def test_walk_files_recursive_nested_structure(tmp_path):
@@ -234,13 +241,13 @@ def test_walk_files_recursive_nested_structure(tmp_path):
     result = walk_files_recursive(tmp_path)
     
     expected = [
-        "a/a_file.txt",
-        "a/b/b_file.txt", 
-        "a/b/c/c_file.txt",
-        "a/b/c/d/d_file.txt",
-        "a/b/c/e/e_file.txt",
-        "a/f/f_file.txt",
-        "root_file.txt"
+        Path("a/a_file.txt"),
+        Path("a/b/b_file.txt"), 
+        Path("a/b/c/c_file.txt"),
+        Path("a/b/c/d/d_file.txt"),
+        Path("a/b/c/e/e_file.txt"),
+        Path("a/f/f_file.txt"),
+        Path("root_file.txt")
     ]
     assert result == expected
 
@@ -256,8 +263,8 @@ def test_walk_files_recursive_with_symlinks(tmp_path):
     result = walk_files_recursive(tmp_path)
     
     expected = [
-        "original.txt",  # original file
-        "real_dir/file_in_dir.txt"  # original directory content
+        Path("original.txt"),  # original file
+        Path("real_dir/file_in_dir.txt")  # original directory content
     ]
     assert result == expected
 
@@ -275,7 +282,7 @@ def test_walk_files_recursive_with_symlinks(tmp_path):
     # Test with os.PathLike (Path)
     result3 = walk_files_recursive(Path(tmp_path))
     
-    expected = ["test_file.txt"]
+    expected = [Path("test_file.txt")]
     assert result1 == expected
     assert result2 == expected
     assert result3 == expected
@@ -305,12 +312,12 @@ def test_walk_files_recursive_special_files(tmp_path):
     result = walk_files_recursive(tmp_path)
     
     expected = [
-        "file with spaces.txt",
-        "file(1).txt",
-        "file-with-dashes.txt",
-        "file.with.dots.txt",
-        "file[2].txt",
-        "file_with_underscores.txt",
+        Path("file with spaces.txt"),
+        Path("file(1).txt"),
+        Path("file-with-dashes.txt"),
+        Path("file.with.dots.txt"),
+        Path("file[2].txt"),
+        Path("file_with_underscores.txt"),
     ]
     assert result == expected
 
@@ -327,9 +334,9 @@ def test_walk_files_recursive_hidden_files(tmp_path):
     result = walk_files_recursive(tmp_path)
     
     expected = [
-        ".hidden_dir/file_in_hidden.txt",
-        ".hidden_file",
-        "normal_dir/file_in_normal.txt",
-        "normal_file.txt"
+        Path(".hidden_dir/file_in_hidden.txt"),
+        Path(".hidden_file"),
+        Path("normal_dir/file_in_normal.txt"),
+        Path("normal_file.txt")
     ]
     assert result == expected

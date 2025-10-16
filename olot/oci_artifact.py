@@ -4,11 +4,12 @@ import json
 import argparse
 from typing import List
 
-from olot.oci.oci_image_manifest import create_oci_image_manifest, create_manifest_layers
+from olot.basics import write_empty_config_in_ocilayoyt
+from olot.oci.oci_image_manifest import ContentDescriptor, create_oci_image_manifest, create_manifest_layers, empty_config
 from olot.oci.oci_image_layout import create_ocilayout
 from olot.oci.oci_common import MediaTypes, Values
 from olot.oci.oci_image_index import Manifest, create_oci_image_index
-from olot.utils.files import MIMETypes, tarball_from_file, targz_from_file
+from olot.utils.files import MIMETypes, tarball_from_file, targz_from_file, walk_files_recursive
 from olot.utils.types import compute_hash_of_str
 
 def create_oci_artifact_from_model(source_dir: Path, dest_dir: Path):
@@ -97,6 +98,64 @@ def create_blobs(model_files: List[Path], dest_dir: Path):
             checksum = new_layer.layer_digest
             layers[file_name] = (checksum, "")
     return layers
+
+
+def create_simple_oci_artifact(source_path: Path, oci_layout_path: Path):
+    """
+    Create a simple OCI artifact from a source directory.
+    """
+    if not source_path.exists():
+        raise NotADirectoryError(f"Input directory '{source_path}' does not exist.")
+    if not oci_layout_path.exists():
+        raise NotADirectoryError(f"Output directory '{oci_layout_path}' does not exist.")
+    
+    walked_files = walk_files_recursive(source_path)
+
+    blobs_path = oci_layout_path / "blobs" / "sha256"
+    blobs_path.mkdir(parents=True, exist_ok=True)
+
+    write_empty_config_in_ocilayoyt(oci_layout_path)
+    cds = create_manifest_layers(walked_files, blobs_path)
+    for e in walked_files:
+        new_layer = targz_from_file(e, blobs_path, prefix="/")
+        layer_digest = new_layer.layer_digest
+        layer_stat = os.stat(blobs_path / layer_digest)
+        size = layer_stat.st_size
+        la = {"org.opencontainers.image.title": new_layer.title}
+        cd = ContentDescriptor(
+            mediaType=MediaTypes.layer_gzip,
+            digest="sha256:"+layer_digest,
+            size=size,
+            urls=None,
+            data=None,
+            artifactType=None,
+            annotations=la
+        )
+        cds.append(cd)
+    manifest = create_oci_image_manifest(config=empty_config(),
+        artifactType="application/json",
+        layers=cds)
+    manifest_json = manifest.model_dump_json(indent=2, exclude_none=True)
+    manifest_SHA = compute_hash_of_str(manifest_json)
+    manifest_blob_path = blobs_path / manifest_SHA
+    with open(manifest_blob_path, "w") as f:
+        f.write(manifest.model_dump_json(indent=2, exclude_none=True))
+    
+    layout = OCIImageLayout(imageLayoutVersion="1.0.0")
+    with open(ocilayout_path / "oci-layout", "w") as f:
+        f.write(layout.model_dump_json(indent=2, exclude_none=True))
+
+    index = OCIImageIndex(schemaVersion=2,
+                          manifests=[
+                              Manifest(mediaType=MediaTypes.manifest,
+                                       size=os.stat(manifest_blob_path).st_size,
+                                       digest="sha256:"+manifest_SHA,
+                                       annotations={"org.opencontainers.image.ref.name": "latest"})
+                          ])
+    with open(ocilayout_path / "index.json", "w") as f:
+        f.write(index.model_dump_json(indent=2, exclude_none=True))
+
+
 
 # create a main function to test the function
 def main():

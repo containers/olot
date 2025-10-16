@@ -161,7 +161,7 @@ def handle_remove(path: os.PathLike):
         os.remove(path)
 
 
-def walk_files_recursive(root_path: os.PathLike) -> List[str]:
+def walk_files_recursive(root_path: os.PathLike) -> List[Path]:
     """
     Recursively walks a directory and returns all files as relative paths, skipping any symlinks.
     
@@ -198,7 +198,7 @@ def walk_files_recursive(root_path: os.PathLike) -> List[str]:
                 if not os.path.islink(full_file_path):
                     file_path = Path(full_file_path)
                     relative_path = file_path.relative_to(root_path)
-                    relative_files.append(str(relative_path))
+                    relative_files.append(relative_path)
         
         return sorted(relative_files)  # Return sorted for consistent ordering
     except OSError as e:
