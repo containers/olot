@@ -186,9 +186,7 @@ def walk_files_recursive(root_path: os.PathLike) -> List[Path]:
     
     try:
         relative_files = []
-        root_path_str = str(root_path)
-        
-        for dirpath, dirnames, filenames in os.walk(root_path_str):
+        for dirpath, dirnames, filenames in os.walk(str(root_path)):
             # Skip symlink directories by removing them from dirnames
             dirnames[:] = [d for d in dirnames if not os.path.islink(os.path.join(dirpath, d))]
             
