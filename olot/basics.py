@@ -3,7 +3,7 @@ from enum import Enum
 import logging
 import os
 from pathlib import Path
-from pprint import pprint
+from pprint import pformat
 import tarfile
 from typing import Dict, List, Sequence
 import typing
@@ -95,7 +95,7 @@ def oci_layers_on_top(
 
     new_ocilayout_manifests: Dict[str, str] = {}
     for manifest_hash, manifest in ocilayout_manifests.items():
-        print(manifest_hash, manifest.mediaType)
+        logger.debug("manifest_hash: %s, manifest.mediaType: %s", manifest_hash, manifest.mediaType)
         config_sha = manifest.config.digest.removeprefix("sha256:")
         mc = None
         with open(ocilayout / "blobs" / "sha256" / config_sha, "r") as cf:
@@ -133,7 +133,7 @@ def oci_layers_on_top(
             cf.write(mc_json)
         mc_json_hash = compute_hash_of_str(mc_json)
         os.rename(ocilayout / "blobs" / "sha256" / config_sha, ocilayout / "blobs" / "sha256" / mc_json_hash)
-        print(f"Renamed config from: {config_sha} to {mc_json_hash}")
+        logger.debug("Renamed config from: %s to %s", config_sha, mc_json_hash)
         config_sha = mc_json_hash
         manifest.config.digest = "sha256:" + config_sha
         manifest.config.size = os.stat(ocilayout / "blobs" / "sha256" / config_sha).st_size
@@ -148,16 +148,16 @@ def oci_layers_on_top(
             cf.write(manifest_json)
         manifest_json_hash = compute_hash_of_str(manifest_json)
         os.rename(ocilayout / "blobs" / "sha256" / manifest_hash, ocilayout / "blobs" / "sha256" / manifest_json_hash)
-        print(f"Renamed Manifest from: {manifest_hash} to {manifest_json_hash}")
+        logger.debug("Renamed Manifest from: %s to %s", manifest_hash, manifest_json_hash)
         new_ocilayout_manifests[manifest_hash] = manifest_json_hash
         manifest_hash = manifest_json_hash
-    pprint(new_ocilayout_manifests)
+    logger.debug("new_ocilayout_manifests: %s", pformat(new_ocilayout_manifests))
     if add_modelpack:
         modelpack_manifest_hash = add_modelpack_manifest(ocilayout, new_layers)
     
     new_ocilayout_indexes: Dict[str, str] = {}
     for index_hash, index in ocilayout_indexes.items():
-        print(index_hash, index.mediaType)
+        logger.debug("index_hash: %s, index.mediaType: %s", index_hash, index.mediaType)
         for m in index.manifests:
             digest = m.digest.removeprefix("sha256:")
             if digest in new_ocilayout_manifests.keys():
@@ -188,14 +188,14 @@ def oci_layers_on_top(
             idxf.write(index_json)
         index_json_hash = compute_hash_of_str(index_json)
         os.rename(ocilayout / "blobs" / "sha256" / index_hash, ocilayout / "blobs" / "sha256" / index_json_hash)
-        print(f"Renamed Index from: {index_hash} to {index_json_hash}")
+        logger.debug("Renamed Index from: %s to %s", index_hash, index_json_hash)
         new_ocilayout_indexes[index_hash] = index_json_hash
-    pprint(new_ocilayout_indexes)
+    logger.debug("new_ocilayout_indexes: %s", pformat(new_ocilayout_indexes))
     
     for entry in ocilayout_root_index.manifests:
         if entry.mediaType == MediaTypes.index:
             lookup_new_hash = new_ocilayout_indexes[entry.digest.removeprefix("sha256:")]
-            print(f"old index {entry.digest} is now at {lookup_new_hash}")
+            logger.debug("old index %s is now at %s", entry.digest, lookup_new_hash)
             entry.digest = "sha256:" + lookup_new_hash
             entry.size = os.stat(ocilayout / "blobs" / "sha256" / lookup_new_hash).st_size
         elif entry.mediaType == MediaTypes.manifest:
@@ -401,4 +401,4 @@ def crawl_ocilayout_blobs_to_extract(ocilayout: Path,
 
 
 if __name__ == "__main__":
-    print("?")
+    logger.debug("basics.py is not meant to be executed directly")
