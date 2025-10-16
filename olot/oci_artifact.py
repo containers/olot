@@ -116,6 +116,8 @@ def create_simple_oci_artifact(source_path: Path, oci_layout_path: Path):
     blobs_path.mkdir(parents=True, exist_ok=True)
 
     mc = OCIManifestConfig(os="unknown",
+                           os_version=None,
+                           os_features=None,
                            architecture="unknown",
                            rootfs=Rootfs(type=Type.layers, diff_ids=[]),
                            history=[],
@@ -144,7 +146,8 @@ def create_simple_oci_artifact(source_path: Path, oci_layout_path: Path):
             created=datetime.datetime.fromtimestamp(ctime, tz=datetime.timezone.utc).isoformat(timespec="seconds").replace("+00:00","Z"),
             created_by="olot create_simple_oci_artifact "+title,
         )
-        mc.history.append(hi)
+        if mc.history is not None:
+            mc.history.append(hi)
         cds.append(cd)
     mc_json = mc.model_dump_json(exclude_none=True)
     mc_json_hash = compute_hash_of_str(mc_json)
