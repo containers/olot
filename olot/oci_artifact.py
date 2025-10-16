@@ -1,9 +1,11 @@
+import datetime
 from pathlib import Path
 import os
 import json
 from typing import List
 
 from olot.basics import write_empty_config_in_ocilayoyt
+from olot.oci.oci_config import HistoryItem, OCIManifestConfig, Rootfs, Type
 from olot.oci.oci_image_manifest import ContentDescriptor, create_oci_image_manifest, create_manifest_layers, empty_config
 from olot.oci.oci_image_layout import ImageLayoutVersion, OCIImageLayout, create_ocilayout
 from olot.oci.oci_common import MediaTypes, Values
@@ -114,7 +116,11 @@ def create_simple_oci_artifact(source_path: Path, oci_layout_path: Path):
     blobs_path = oci_layout_path / "blobs" / "sha256"
     blobs_path.mkdir(parents=True, exist_ok=True)
 
-    write_empty_config_in_ocilayoyt(oci_layout_path)
+    mc = OCIManifestConfig(os="unknown",
+                           architecture="unknown",
+                           rootfs=Rootfs(type=Type.layers, diff_ids=[]),
+                           history=[],
+                           )
     cds = []
     for e in walked_files:
         prefix = str(e.parent) + "/" if e.parent != Path(".") else "/"
@@ -122,6 +128,7 @@ def create_simple_oci_artifact(source_path: Path, oci_layout_path: Path):
         layer_digest = new_layer.layer_digest
         layer_stat = os.stat(blobs_path / layer_digest)
         size = layer_stat.st_size
+        ctime = layer_stat.st_ctime
         title = prefix + e.name if prefix != "/" else e.name
         la = {"olot.title": title}  # cannot use org.opencontainers.image.title to avoid oras not untarring the blob :(
         cd = ContentDescriptor(
@@ -133,10 +140,29 @@ def create_simple_oci_artifact(source_path: Path, oci_layout_path: Path):
             artifactType=None,
             annotations=la
         )
+        mc.rootfs.diff_ids.append("sha256:"+new_layer.diff_id)
+        hi = HistoryItem(
+            created=datetime.datetime.fromtimestamp(ctime, tz=datetime.timezone.utc).isoformat(timespec="seconds").replace("+00:00","Z"),
+            created_by="olot create_simple_oci_artifact "+title,
+        )
+        mc.history.append(hi)
         cds.append(cd)
-    manifest = create_oci_image_manifest(config=empty_config(),
-        artifactType="application/json",
-        layers=cds)
+    mc_json = mc.model_dump_json(exclude_none=True)
+    mc_json_hash = compute_hash_of_str(mc_json)
+    with open(blobs_path / mc_json_hash, "w") as cf:
+        cf.write(mc_json)
+    manifest = create_oci_image_manifest(
+        config=ContentDescriptor(
+                mediaType=MediaTypes.config,
+                digest="sha256:" + mc_json_hash,
+                size=os.stat(blobs_path / mc_json_hash).st_size,
+                urls=None,
+                data=None,
+                artifactType=None,
+            ),
+        artifactType="application/json",  # TODO: maybe place here something specific to lmeh
+        layers=cds
+        )
     manifest_json = manifest.model_dump_json(indent=2, exclude_none=True)
     manifest_SHA = compute_hash_of_str(manifest_json)
     manifest_blob_path = blobs_path / manifest_SHA
