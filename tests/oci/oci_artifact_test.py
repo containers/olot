@@ -8,7 +8,7 @@ from olot.oci.oci_image_manifest import ContentDescriptor, create_oci_image_mani
 from olot.utils.files import targz_from_file, walk_files_recursive
 from olot.utils.types import compute_hash_of_str
 from tests.common import get_test_data_path, sample_model_path, file_checksums_with_compression, file_checksums_without_compression
-from olot.oci_artifact import create_blobs
+from olot.oci_artifact import create_blobs, create_simple_oci_artifact
 
 import os
 from pathlib import Path
@@ -127,7 +127,7 @@ def test_full_artifact(tmp_path):
 
 
 def test_full_artifact_with_directory_structure(tmp_path: Path):
-    ocilayout_path = tmp_path / "oci-layout"
+    ocilayout_path = tmp_path / "working"
     ocilayout_path.mkdir(parents=True, exist_ok=True)
     
     lmeh_path = get_test_data_path() / "lmeh2"
@@ -139,4 +139,41 @@ def test_full_artifact_with_directory_structure(tmp_path: Path):
         Path("some.log"),
     ]
     assert walked_files == expected_walked_files
+    create_simple_oci_artifact(lmeh_path, ocilayout_path)
 
+    # now let's use oras-copy to transfer from oci-layout to another oci-layout (instead of a OCI registry)
+    oras_push(ocilayout_path, tmp_path / "output:latest", ["--to-oci-layout"])
+    print(tmp_path)
+
+    # iterate the blobs so to include manifest and config in addition to the layers
+    blobs_path = ocilayout_path / "blobs" / "sha256"
+    output_blobs_path = tmp_path / "output" / "blobs" / "sha256"
+    assert output_blobs_path.exists(), f"Output blobs directory {output_blobs_path} does not exist"
+    original_blob_files = set()
+    for file_path in blobs_path.iterdir():
+        if file_path.is_file():
+            original_blob_files.add(file_path.name)
+    output_blob_files = set()
+    for file_path in output_blobs_path.iterdir():
+        if file_path.is_file():
+            output_blob_files.add(file_path.name)
+
+    # check same blobs
+    missing_files = original_blob_files - output_blob_files
+    assert not missing_files, f"Files missing in output: {missing_files}"
+    assert len(output_blob_files) >= len(original_blob_files), \
+        f"Output has fewer files ({len(output_blob_files)}) than original ({len(original_blob_files)})"
+
+    # check the blobs content are the same
+    for filename in original_blob_files:
+        original_file_path = blobs_path / filename
+        output_file_path = output_blobs_path / filename
+
+        assert output_file_path.exists(), f"Output file {filename} does not exist"
+        with open(original_file_path, 'rb') as orig_file, open(output_file_path, 'rb') as out_file:
+            original_content = orig_file.read()
+            output_content = out_file.read()
+        assert original_content == output_content, \
+            f"File content mismatch for {filename}: original size={len(original_content)}, output size={len(output_content)}"
+        assert len(original_content) == len(output_content), \
+            f"File size mismatch for {filename}: original={len(original_content)}, output={len(output_content)}"

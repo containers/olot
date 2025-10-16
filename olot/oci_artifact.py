@@ -6,9 +6,9 @@ from typing import List
 
 from olot.basics import write_empty_config_in_ocilayoyt
 from olot.oci.oci_image_manifest import ContentDescriptor, create_oci_image_manifest, create_manifest_layers, empty_config
-from olot.oci.oci_image_layout import create_ocilayout
+from olot.oci.oci_image_layout import OCIImageLayout, create_ocilayout
 from olot.oci.oci_common import MediaTypes, Values
-from olot.oci.oci_image_index import Manifest, create_oci_image_index
+from olot.oci.oci_image_index import Manifest, OCIImageIndex, create_oci_image_index
 from olot.utils.files import MIMETypes, tarball_from_file, targz_from_file, walk_files_recursive
 from olot.utils.types import compute_hash_of_str
 
@@ -78,6 +78,7 @@ def create_oci_artifact_from_model(source_dir: Path, dest_dir: Path):
     else:
         raise ValueError(f"Invalid empty_digest format: {Values.empty_digest}")
 
+
 def create_blobs(model_files: List[Path], dest_dir: Path):
     """
     Create the blobs directory for an OCI artifact.
@@ -115,13 +116,15 @@ def create_simple_oci_artifact(source_path: Path, oci_layout_path: Path):
     blobs_path.mkdir(parents=True, exist_ok=True)
 
     write_empty_config_in_ocilayoyt(oci_layout_path)
-    cds = create_manifest_layers(walked_files, blobs_path)
+    cds = []
     for e in walked_files:
-        new_layer = targz_from_file(e, blobs_path, prefix="/")
+        prefix = str(e.parent) + "/" if e.parent != Path(".") else "/"
+        new_layer = targz_from_file(source_path / e, blobs_path, prefix=prefix)
         layer_digest = new_layer.layer_digest
         layer_stat = os.stat(blobs_path / layer_digest)
         size = layer_stat.st_size
-        la = {"org.opencontainers.image.title": new_layer.title}
+        title = prefix + e.name if prefix != "/" else e.name
+        la = {"olot.title": title}  # cannot use org.opencontainers.image.title to avoid oras not untarring the blob :(
         cd = ContentDescriptor(
             mediaType=MediaTypes.layer_gzip,
             digest="sha256:"+layer_digest,
@@ -142,7 +145,7 @@ def create_simple_oci_artifact(source_path: Path, oci_layout_path: Path):
         f.write(manifest.model_dump_json(indent=2, exclude_none=True))
     
     layout = OCIImageLayout(imageLayoutVersion="1.0.0")
-    with open(ocilayout_path / "oci-layout", "w") as f:
+    with open(oci_layout_path / "oci-layout", "w") as f:
         f.write(layout.model_dump_json(indent=2, exclude_none=True))
 
     index = OCIImageIndex(schemaVersion=2,
@@ -152,19 +155,17 @@ def create_simple_oci_artifact(source_path: Path, oci_layout_path: Path):
                                        digest="sha256:"+manifest_SHA,
                                        annotations={"org.opencontainers.image.ref.name": "latest"})
                           ])
-    with open(ocilayout_path / "index.json", "w") as f:
+    with open(oci_layout_path / "index.json", "w") as f:
         f.write(index.model_dump_json(indent=2, exclude_none=True))
 
 
-
-# create a main function to test the function
 def main():
-    parser = argparse.ArgumentParser(description="Create OCI artifact from model")
-    parser.add_argument('source_dir', type=str, help='Path to the source directory')
-    args = parser.parse_args()
-
-    source_dir = Path(args.source_dir)
-    create_oci_artifact_from_model(source_dir, None)
+    # parser = argparse.ArgumentParser(description="Create OCI artifact from model")
+    # parser.add_argument('source_dir', type=str, help='Path to the source directory')
+    # args = parser.parse_args()
+    # source_dir = Path(args.source_dir)
+    # create_oci_artifact_from_model(source_dir, None)
+    raise RuntimeError("No longer used/supported")
 
 if __name__ == "__main__":
     main()
