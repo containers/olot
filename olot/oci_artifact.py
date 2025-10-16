@@ -4,9 +4,8 @@ import os
 import json
 from typing import List
 
-from olot.basics import write_empty_config_in_ocilayoyt
 from olot.oci.oci_config import HistoryItem, OCIManifestConfig, Rootfs, Type
-from olot.oci.oci_image_manifest import ContentDescriptor, create_oci_image_manifest, create_manifest_layers, empty_config
+from olot.oci.oci_image_manifest import ContentDescriptor, create_oci_image_manifest, create_manifest_layers
 from olot.oci.oci_image_layout import ImageLayoutVersion, OCIImageLayout, create_ocilayout
 from olot.oci.oci_common import MediaTypes, Values
 from olot.oci.oci_image_index import Manifest, OCIImageIndex, create_oci_image_index
