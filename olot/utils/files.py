@@ -179,10 +179,10 @@ def walk_files(root_path: os.PathLike) -> List[Path]:
         root_path = Path(root_path)
     
     if not root_path.exists():
-        raise ValueError(f"Path '{root_path}' does not exist")
+        raise FileNotFoundError(f"Path '{root_path}' does not exist")
     
     if not root_path.is_dir():
-        raise ValueError(f"Path '{root_path}' is not a directory")
+        raise NotADirectoryError(f"Path '{root_path}' is not a directory")
     
     try:
         relative_files = []

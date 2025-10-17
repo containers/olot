@@ -398,7 +398,3 @@ def crawl_ocilayout_blobs_to_extract(ocilayout: Path,
                         tar.extract(member, path=output_path)
                         extracted.append(member.name)
     return extracted
-
-
-if __name__ == "__main__":
-    print("?")

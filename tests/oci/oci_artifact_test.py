@@ -4,7 +4,7 @@ from olot.oci.oci_common import MediaTypes
 from olot.oci.oci_image_index import Manifest, OCIImageIndex
 from olot.oci.oci_image_layout import OCIImageLayout
 from olot.oci.oci_image_manifest import ContentDescriptor, create_oci_image_manifest, empty_config
-from olot.utils.files import targz_from_file, walk_files_recursive
+from olot.utils.files import targz_from_file, walk_files
 from olot.utils.types import compute_hash_of_str
 from tests.common import get_test_data_path, sample_model_path, file_checksums_with_compression, file_checksums_without_compression
 from olot.oci_artifact import create_blobs, create_simple_oci_artifact
@@ -130,7 +130,7 @@ def test_full_artifact_with_directory_structure(tmp_path: Path):
     ocilayout_path.mkdir(parents=True, exist_ok=True)
     
     lmeh_path = get_test_data_path() / "lmeh2"
-    walked_files = walk_files_recursive(lmeh_path)
+    walked_files = walk_files(lmeh_path)
     expected_walked_files = [
         Path("README.md"),
         Path("lmeh/results_2025-04-30T18-24-41.082644.json"),

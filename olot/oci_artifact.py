@@ -9,7 +9,7 @@ from olot.oci.oci_image_manifest import ContentDescriptor, create_oci_image_mani
 from olot.oci.oci_image_layout import ImageLayoutVersion, OCIImageLayout, create_ocilayout
 from olot.oci.oci_common import MediaTypes, Values
 from olot.oci.oci_image_index import Manifest, OCIImageIndex, create_oci_image_index
-from olot.utils.files import MIMETypes, tarball_from_file, targz_from_file, walk_files_recursive
+from olot.utils.files import MIMETypes, tarball_from_file, targz_from_file, walk_files
 from olot.utils.types import compute_hash_of_str
 
 def create_oci_artifact_from_model(source_dir: Path, dest_dir: Path):
@@ -107,10 +107,10 @@ def create_simple_oci_artifact(source_path: Path, oci_layout_path: Path):
     """
     if not source_path.is_dir():
         raise NotADirectoryError(f"Input directory {str(source_path)!r} does not exist.")
-    if not oci_layout_path.exists():
-        raise NotADirectoryError(f"Output directory '{oci_layout_path}' does not exist.")
+    if not oci_layout_path.is_dir():
+        raise NotADirectoryError(f"Output directory '{str(oci_layout_path)!r}' does not exist.")
     
-    walked_files = walk_files_recursive(source_path)
+    walked_files = walk_files(source_path)
 
     blobs_path = oci_layout_path / "blobs" / "sha256"
     blobs_path.mkdir(parents=True, exist_ok=True)
@@ -166,12 +166,10 @@ def create_simple_oci_artifact(source_path: Path, oci_layout_path: Path):
     manifest_json = manifest.model_dump_json(indent=2, exclude_none=True)
     manifest_SHA = compute_hash_of_str(manifest_json)
     manifest_blob_path = blobs_path / manifest_SHA
-    with open(manifest_blob_path, "w") as f:
-        f.write(manifest.model_dump_json(indent=2, exclude_none=True))
+    manifest_blob_path.write_text(manifest.model_dump_json(indent=2, exclude_none=True))
     
     layout = OCIImageLayout(imageLayoutVersion=ImageLayoutVersion.field_1_0_0)
-    with open(oci_layout_path / "oci-layout", "w") as f:
-        f.write(layout.model_dump_json(indent=2, exclude_none=True))
+    (oci_layout_path / "oci-layout").write_text(layout.model_dump_json(indent=2, exclude_none=True))
 
     index = OCIImageIndex(schemaVersion=2,
                           mediaType=MediaTypes.index,
@@ -185,17 +183,4 @@ def create_simple_oci_artifact(source_path: Path, oci_layout_path: Path):
                           ],
                           artifactType=None,
                           )
-    with open(oci_layout_path / "index.json", "w") as f:
-        f.write(index.model_dump_json(indent=2, exclude_none=True))
-
-
-def main():
-    # parser = argparse.ArgumentParser(description="Create OCI artifact from model")
-    # parser.add_argument('source_dir', type=str, help='Path to the source directory')
-    # args = parser.parse_args()
-    # source_dir = Path(args.source_dir)
-    # create_oci_artifact_from_model(source_dir, None)
-    raise RuntimeError("No longer used/supported")
-
-if __name__ == "__main__":
-    main()
+    (oci_layout_path / "index.json").write_text(index.model_dump_json(indent=2, exclude_none=True))

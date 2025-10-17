@@ -5,7 +5,7 @@ import shutil
 import os
 
 import pytest
-from olot.utils.files import get_file_hash, HashingWriter, tarball_from_file, targz_from_file, walk_files_recursive
+from olot.utils.files import get_file_hash, HashingWriter, tarball_from_file, targz_from_file, walk_files
 
 from tests.common import sample_model_path, sha256_path
 
@@ -189,14 +189,14 @@ def test_targz_from_file_using_prefix(tmp_path):
     assert Path(tmp_path / "custom" / "model.joblib").is_file()
 
 
-def test_walk_files_recursive_empty_dir(tmp_path):
-    """Test walk_files_recursive() with an empty directory"""
-    result = walk_files_recursive(tmp_path)
+def test_walk_files_empty_dir(tmp_path):
+    """Test walk_files() with an empty directory"""
+    result = walk_files(tmp_path)
     assert result == []
 
 
-def test_walk_files_recursive_basic(tmp_path):
-    """Test walk_files_recursive() with a basic directory structure"""
+def test_walk_files_basic(tmp_path):
+    """Test walk_files() with a basic directory structure"""
     (tmp_path / "dir1").mkdir()
     (tmp_path / "dir2").mkdir()
     (tmp_path / "dir1" / "subdir").mkdir()
@@ -206,7 +206,7 @@ def test_walk_files_recursive_basic(tmp_path):
     (tmp_path / "dir1" / "subdir" / "file4.json").write_text("content4")
     (tmp_path / "dir2" / "file5.txt").write_text("content5")
     
-    result = walk_files_recursive(tmp_path)
+    result = walk_files(tmp_path)
     
     expected = [
         Path("dir1/file3.md"),
@@ -224,8 +224,8 @@ def test_walk_files_recursive_basic(tmp_path):
     assert str(result[2].parent) == "dir2"
 
 
-def test_walk_files_recursive_nested_structure(tmp_path):
-    """Test walk_files_recursive() with deeply nested directory structure"""
+def test_walk_files_nested_structure(tmp_path):
+    """Test walk_files() with deeply nested directory structure"""
     (tmp_path / "a" / "b" / "c" / "d").mkdir(parents=True)
     (tmp_path / "a" / "b" / "c" / "e").mkdir(parents=True)
     (tmp_path / "a" / "f").mkdir(parents=True)
@@ -237,7 +237,7 @@ def test_walk_files_recursive_nested_structure(tmp_path):
     (tmp_path / "a" / "b" / "c" / "e" / "e_file.txt").write_text("e")
     (tmp_path / "a" / "f" / "f_file.txt").write_text("f")
     
-    result = walk_files_recursive(tmp_path)
+    result = walk_files(tmp_path)
     
     expected = [
         Path("a/a_file.txt"),
@@ -251,15 +251,15 @@ def test_walk_files_recursive_nested_structure(tmp_path):
     assert result == expected
 
 
-def test_walk_files_recursive_with_symlinks(tmp_path):
-    """Test walk_files_recursive() with symbolic links"""
+def test_walk_files_with_symlinks(tmp_path):
+    """Test walk_files() with symbolic links"""
     (tmp_path / "original.txt").write_text("original content")
     (tmp_path / "link.txt").symlink_to("original.txt")
     (tmp_path / "real_dir").mkdir()
     (tmp_path / "real_dir" / "file_in_dir.txt").write_text("content")
     (tmp_path / "dir_link").symlink_to("real_dir")
     
-    result = walk_files_recursive(tmp_path)
+    result = walk_files(tmp_path)
     
     expected = [
         Path("original.txt"),  # original file
@@ -268,18 +268,18 @@ def test_walk_files_recursive_with_symlinks(tmp_path):
     assert result == expected
 
 
-def test_walk_files_recursive_with_different_path_types(tmp_path):
-    """Test walk_files_recursive() with different path types"""
+def test_walk_files_with_different_path_types(tmp_path):
+    """Test walk_files() with different path types"""
     (tmp_path / "test_file.txt").write_text("test")
     
     # Test with Path object
-    result1 = walk_files_recursive(tmp_path)
+    result1 = walk_files(tmp_path)
     
     # Test with string path
-    result2 = walk_files_recursive(str(tmp_path))
+    result2 = walk_files(str(tmp_path))
     
     # Test with os.PathLike (Path)
-    result3 = walk_files_recursive(Path(tmp_path))
+    result3 = walk_files(Path(tmp_path))
     
     expected = [Path("test_file.txt")]
     assert result1 == expected
@@ -287,20 +287,20 @@ def test_walk_files_recursive_with_different_path_types(tmp_path):
     assert result3 == expected
 
 
-def test_walk_files_recursive_error_cases(tmp_path):
-    """Test walk_files_recursive() error cases"""
+def test_walk_files_error_cases(tmp_path):
+    """Test walk_files() error cases"""
     # Test with non-existent path
-    with pytest.raises(ValueError, match="does not exist"):
-        walk_files_recursive(tmp_path / "nonexistent")
+    with pytest.raises(FileNotFoundError, match="does not exist"):
+        walk_files(tmp_path / "nonexistent")
     
     # Test with file instead of directory
     (tmp_path / "not_a_dir.txt").write_text("content")
-    with pytest.raises(ValueError, match="is not a directory"):
-        walk_files_recursive(tmp_path / "not_a_dir.txt")
+    with pytest.raises(NotADirectoryError, match="is not a directory"):
+        walk_files(tmp_path / "not_a_dir.txt")
 
 
-def test_walk_files_recursive_special_files(tmp_path):
-    """Test walk_files_recursive() with files having special characters"""
+def test_walk_files_special_files(tmp_path):
+    """Test walk_files() with files having special characters"""
     (tmp_path / "file with spaces.txt").write_text("content1")
     (tmp_path / "file-with-dashes.txt").write_text("content2")
     (tmp_path / "file_with_underscores.txt").write_text("content3")
@@ -308,7 +308,7 @@ def test_walk_files_recursive_special_files(tmp_path):
     (tmp_path / "file(1).txt").write_text("content5")
     (tmp_path / "file[2].txt").write_text("content6")
     
-    result = walk_files_recursive(tmp_path)
+    result = walk_files(tmp_path)
     
     expected = [
         Path("file with spaces.txt"),
@@ -321,8 +321,8 @@ def test_walk_files_recursive_special_files(tmp_path):
     assert result == expected
 
 
-def test_walk_files_recursive_hidden_files(tmp_path):
-    """Test walk_files_recursive() with hidden files and directories"""
+def test_walk_files_hidden_files(tmp_path):
+    """Test walk_files() with hidden files and directories"""
     (tmp_path / ".hidden_file").write_text("hidden")
     (tmp_path / ".hidden_dir").mkdir()
     (tmp_path / ".hidden_dir" / "file_in_hidden.txt").write_text("content")
@@ -330,7 +330,7 @@ def test_walk_files_recursive_hidden_files(tmp_path):
     (tmp_path / "normal_dir").mkdir()
     (tmp_path / "normal_dir" / "file_in_normal.txt").write_text("content")
     
-    result = walk_files_recursive(tmp_path)
+    result = walk_files(tmp_path)
     
     expected = [
         Path(".hidden_dir/file_in_hidden.txt"),
