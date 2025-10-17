@@ -150,8 +150,7 @@ def create_simple_oci_artifact(source_path: Path, oci_layout_path: Path):
         cds.append(cd)
     mc_json = mc.model_dump_json(exclude_none=True)
     mc_json_hash = compute_hash_of_str(mc_json)
-    with open(blobs_path / mc_json_hash, "w") as cf:
-        cf.write(mc_json)
+    (blobs_path / mc_json_hash).write_text(mc_json)
     manifest = create_oci_image_manifest(
         config=ContentDescriptor(
                 mediaType=MediaTypes.config,
