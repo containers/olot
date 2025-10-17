@@ -178,8 +178,8 @@ def walk_files(root_path: os.PathLike) -> List[Path]:
     if not isinstance(root_path, Path):
         root_path = Path(root_path)
     
-    if not root_path.is_dir():
-        raise NotADirectoryError(f"Path {str(root_path)!r} is not a directory")
+    if not root_path.exists():
+        raise ValueError(f"Path '{root_path}' does not exist")
     
     if not root_path.is_dir():
         raise ValueError(f"Path '{root_path}' is not a directory")
