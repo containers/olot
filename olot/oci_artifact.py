@@ -105,8 +105,8 @@ def create_simple_oci_artifact(source_path: Path, oci_layout_path: Path):
     """
     Create a simple OCI artifact from a source directory.
     """
-    if not source_path.exists():
-        raise NotADirectoryError(f"Input directory '{source_path}' does not exist.")
+    if not source_path.is_dir():
+        raise NotADirectoryError(f"Input directory {str(source_path)!r} does not exist.")
     if not oci_layout_path.exists():
         raise NotADirectoryError(f"Output directory '{oci_layout_path}' does not exist.")
     
