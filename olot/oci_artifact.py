@@ -1,14 +1,15 @@
+import datetime
 from pathlib import Path
 import os
 import json
-import argparse
 from typing import List
 
-from olot.oci.oci_image_manifest import create_oci_image_manifest, create_manifest_layers
-from olot.oci.oci_image_layout import create_ocilayout
+from olot.oci.oci_config import HistoryItem, OCIManifestConfig, Rootfs, Type
+from olot.oci.oci_image_manifest import ContentDescriptor, create_oci_image_manifest, create_manifest_layers
+from olot.oci.oci_image_layout import ImageLayoutVersion, OCIImageLayout, create_ocilayout
 from olot.oci.oci_common import MediaTypes, Values
-from olot.oci.oci_image_index import Manifest, create_oci_image_index
-from olot.utils.files import MIMETypes, tarball_from_file, targz_from_file
+from olot.oci.oci_image_index import Manifest, OCIImageIndex, create_oci_image_index
+from olot.utils.files import MIMETypes, tarball_from_file, targz_from_file, walk_files
 from olot.utils.types import compute_hash_of_str
 
 def create_oci_artifact_from_model(source_dir: Path, dest_dir: Path):
@@ -77,6 +78,7 @@ def create_oci_artifact_from_model(source_dir: Path, dest_dir: Path):
     else:
         raise ValueError(f"Invalid empty_digest format: {Values.empty_digest}")
 
+
 def create_blobs(model_files: List[Path], dest_dir: Path):
     """
     Create the blobs directory for an OCI artifact.
@@ -98,14 +100,87 @@ def create_blobs(model_files: List[Path], dest_dir: Path):
             layers[file_name] = (checksum, "")
     return layers
 
-# create a main function to test the function
-def main():
-    parser = argparse.ArgumentParser(description="Create OCI artifact from model")
-    parser.add_argument('source_dir', type=str, help='Path to the source directory')
-    args = parser.parse_args()
 
-    source_dir = Path(args.source_dir)
-    create_oci_artifact_from_model(source_dir, None)
+def create_simple_oci_artifact(source_path: Path, oci_layout_path: Path):
+    """
+    Create a simple OCI artifact from a source directory.
+    """
+    if not source_path.is_dir():
+        raise NotADirectoryError(f"Input directory {str(source_path)!r} does not exist.")
+    if not oci_layout_path.is_dir():
+        raise NotADirectoryError(f"Output directory '{str(oci_layout_path)!r}' does not exist.")
+    
+    walked_files = walk_files(source_path)
 
-if __name__ == "__main__":
-    main()
+    blobs_path = oci_layout_path / "blobs" / "sha256"
+    blobs_path.mkdir(parents=True, exist_ok=True)
+
+    mc = OCIManifestConfig(os="unknown",
+                           architecture="unknown",
+                           **{"os.version": None, "os.features": None},
+                           rootfs=Rootfs(type=Type.layers, diff_ids=[]),
+                           history=[],
+                           )
+    cds = []
+    for e in walked_files:
+        prefix = str(e.parent) + "/" if e.parent != Path(".") else "/"
+        new_layer = targz_from_file(source_path / e, blobs_path, prefix=prefix)
+        layer_digest = new_layer.layer_digest
+        layer_stat = os.stat(blobs_path / layer_digest)
+        size = layer_stat.st_size
+        ctime = layer_stat.st_ctime
+        title = prefix + e.name if prefix != "/" else e.name
+        la = {"olot.title": title}  # cannot use org.opencontainers.image.title to avoid oras not untarring the blob :(
+        cd = ContentDescriptor(
+            mediaType=MediaTypes.layer_gzip,
+            digest="sha256:"+layer_digest,
+            size=size,
+            urls=None,
+            data=None,
+            artifactType=None,
+            annotations=la
+        )
+        mc.rootfs.diff_ids.append("sha256:"+new_layer.diff_id)
+        hi = HistoryItem(
+            created=datetime.datetime.fromtimestamp(ctime, tz=datetime.timezone.utc).isoformat(timespec="seconds").replace("+00:00","Z"),
+            created_by="olot create_simple_oci_artifact "+title,
+        )
+        if mc.history is not None:
+            mc.history.append(hi)
+        cds.append(cd)
+    mc_json = mc.model_dump_json(exclude_none=True)
+    mc_json_hash = compute_hash_of_str(mc_json)
+    (blobs_path / mc_json_hash).write_text(mc_json)
+    manifest = create_oci_image_manifest(
+        config=ContentDescriptor(
+                mediaType=MediaTypes.config,
+                digest="sha256:" + mc_json_hash,
+                size=os.stat(blobs_path / mc_json_hash).st_size,
+                urls=None,
+                data=None,
+                artifactType=None,
+            ),
+        artifactType="application/json",  # TODO: maybe place here something specific to lmeh
+        layers=cds
+        )
+    manifest_json = manifest.model_dump_json(indent=2, exclude_none=True)
+    manifest_SHA = compute_hash_of_str(manifest_json)
+    manifest_blob_path = blobs_path / manifest_SHA
+    manifest_blob_path.write_text(manifest.model_dump_json(indent=2, exclude_none=True))
+    
+    layout = OCIImageLayout(imageLayoutVersion=ImageLayoutVersion.field_1_0_0)
+    (oci_layout_path / "oci-layout").write_text(layout.model_dump_json(indent=2, exclude_none=True))
+
+    index = OCIImageIndex(schemaVersion=2,
+                          mediaType=MediaTypes.index,
+                          manifests=[
+                              Manifest(mediaType=MediaTypes.manifest,
+                                       size=os.stat(manifest_blob_path).st_size,
+                                       digest="sha256:"+manifest_SHA,
+                                       annotations={"org.opencontainers.image.ref.name": "latest"},
+                                       urls=None,
+                                       )
+                          ],
+                          artifactType=None,
+                          )
+    (oci_layout_path / "index.json").write_text(index.model_dump_json(indent=2, exclude_none=True))
