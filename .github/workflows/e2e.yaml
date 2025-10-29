@@ -323,3 +323,73 @@ jobs:
         find /tmp/embedded_oci_layout -type f -exec ls -la {} \;
         # Compare the contents of olot/embedded_oci_layout and /tmp/embedded_oci_layout
         diff -r olot/embedded_oci_layout /tmp/embedded_oci_layout
+
+  e2e-skopeo-dockerdistribution:
+    name: E2E using Skopeo and Docker Distribution for base-image
+    runs-on: ubuntu-24.04
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v5
+    - name: Install Skopeo
+      run: |
+        sudo apt-get update && sudo apt-get install skopeo
+        skopeo --version
+    - name: Set up Python
+      uses: actions/setup-python@v6
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+    - name: Install Poetry
+      run: |
+        pipx install poetry
+    - name: Install-only specific KinD version (so it's up-to-date)
+      uses: helm/kind-action@v1
+      with:
+        version: ${{ env.KIND_VERSION }}
+        node_image: ${{ env.KIND_NODE_IMAGE }}
+        install_only: true
+    - name: Install dependencies and warm up KinD
+      run: |
+        make install
+        make deploy-kind-cluster deploy-local-registry
+    - name: Deploy KServe
+      run: |
+        kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.16.1/cert-manager.yaml
+        e2e/repeat.sh kubectl apply --server-side -f https://github.com/kserve/kserve/releases/download/v0.14.0/kserve.yaml
+        e2e/repeat.sh kubectl apply --server-side -f https://github.com/kserve/kserve/releases/download/v0.14.0/kserve-cluster-resources.yaml
+        kubectl patch configmap/inferenceservice-config -n kserve --type=strategic -p '{"data": {"deploy": "{\"defaultDeploymentMode\": \"RawDeployment\"}"}}'
+        e2e/enable-modelcar.sh
+    - name: Run OLOT tutorial of README, and load image in KinD for amd64
+      run: | 
+        IMAGE_DIR=download
+        OCI_REGISTRY_SOURCE=quay.io/mmortari/hello-world-wait:dockerdistribution
+        OCI_REGISTRY_DESTINATION=localhost:5001/nstestorg/modelcar
+        rm -rf $IMAGE_DIR
+        skopeo copy --multi-arch all docker://${OCI_REGISTRY_SOURCE} oci:${IMAGE_DIR}:latest
+        poetry run olot $IMAGE_DIR --modelcard tests/data/sample-model/README.md tests/data/sample-model/model.joblib
+        # copy modelcar from oci-layout to the local docker registry
+        skopeo copy --tls-verify=false --multi-arch all oci:${IMAGE_DIR}:latest docker://${OCI_REGISTRY_DESTINATION}
+        skopeo inspect --tls-verify=false --raw docker://localhost:5001/nstestorg/modelcar | jq .
+        # make sure the annotation is present
+        digest=$(skopeo inspect --tls-verify=false --raw docker://localhost:5001/nstestorg/modelcar | jq -r '.manifests[] | select(.platform.architecture == "amd64") | .digest')
+        skopeo inspect --tls-verify=false docker://${OCI_REGISTRY_DESTINATION}@$digest --raw | jq .
+        skopeo inspect --tls-verify=false docker://${OCI_REGISTRY_DESTINATION}@$digest --raw | jq -e '.layers | last | has("annotations")'
+        # tag amd64 as modelcar:v1 and load image in KinD cluster
+        skopeo copy --src-tls-verify=false docker://localhost:5001/nstestorg/modelcar@$digest docker-daemon:localhost:5001/nstestorg/modelcar:v1
+        kind load docker-image -n "olot-e2e" "localhost:5001/nstestorg/modelcar:v1"
+    - name: Apply Isvc using Modelcar # since the enable modelcar restart controller pod, better guard the kubectl apply
+      run: |
+        e2e/repeat.sh kubectl apply -f e2e/isvc-modelcar.yaml
+        kubectl wait --for=condition=Ready isvc/my-inference-service --timeout=240s
+    - name: Basic testing of Isvc that has Modelcar
+      run: |
+        echo "Starting port-forward..."
+        kubectl port-forward svc/my-inference-service-predictor 8080:80 &
+        PID=$!
+        sleep 2
+        echo "I have launched port-forward in background with: $PID."
+        echo "Check that OIP return the expected name"
+        curl -s http://localhost:8080/v2/models | jq -e '.models | index("my-inference-service") != null'
+        echo "Check that OIP produces an Inference Prediction"
+        curl -s -H "Content-Type: application/json" -d @e2e/data/input0.json http://localhost:8080/v2/models/my-inference-service/infer | jq
+        curl -s -H "Content-Type: application/json" -d @e2e/data/input1.json http://localhost:8080/v2/models/my-inference-service/infer | jq
+        curl -s -H "Content-Type: application/json" -d @e2e/data/input4.json http://localhost:8080/v2/models/my-inference-service/infer | jq
