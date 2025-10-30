@@ -324,7 +324,7 @@ jobs:
         # Compare the contents of olot/embedded_oci_layout and /tmp/embedded_oci_layout
         diff -r olot/embedded_oci_layout /tmp/embedded_oci_layout
 
-  e2e-skopeo-dockerdistribution:
+  e2e-dockerdistribution:
     name: E2E using Skopeo and Docker Distribution for base-image
     runs-on: ubuntu-24.04
     steps:
@@ -334,6 +334,9 @@ jobs:
       run: |
         sudo apt-get update && sudo apt-get install skopeo
         skopeo --version
+    - name: Install oras
+      uses: oras-project/setup-oras@v1
+    - run: oras version
     - name: Set up Python
       uses: actions/setup-python@v6
       with:
@@ -364,7 +367,8 @@ jobs:
         OCI_REGISTRY_SOURCE=quay.io/mmortari/hello-world-wait:dockerdistribution
         OCI_REGISTRY_DESTINATION=localhost:5001/nstestorg/modelcar
         rm -rf $IMAGE_DIR
-        skopeo copy --multi-arch all docker://${OCI_REGISTRY_SOURCE} oci:${IMAGE_DIR}:latest
+        oras copy --to-oci-layout ${OCI_REGISTRY_SOURCE} ${IMAGE_DIR}:latest
+        chmod -R g+w "${IMAGE_DIR}"
         poetry run olot $IMAGE_DIR --modelcard tests/data/sample-model/README.md tests/data/sample-model/model.joblib
         # copy modelcar from oci-layout to the local docker registry
         skopeo copy --tls-verify=false --multi-arch all oci:${IMAGE_DIR}:latest docker://${OCI_REGISTRY_DESTINATION}
