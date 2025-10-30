@@ -1,12 +1,14 @@
 import json
+import os
 from pathlib import Path
 from typing import Dict, List
 from olot.oci.oci_config import OCIManifestConfig
+from olot.oci.oci_image_index import OCIImageIndex
 from olot.utils.types import compute_hash_of_str
 from olot.oci.oci_image_manifest import OCIImageManifest, ContentDescriptor
 from olot.oci.oci_common import MediaTypes
 
-# Constants for media types
+DOCKER_LIST_V2 = "application/vnd.docker.distribution.manifest.list.v2+json"
 DOCKER_MANIFEST_V2 = "application/vnd.docker.distribution.manifest.v2+json"
 DOCKER_LAYER_TAR_GZIP = "application/vnd.docker.image.rootfs.diff.tar.gzip"
 DOCKER_CONFIG_V1 = "application/vnd.docker.container.image.v1+json"
@@ -25,21 +27,50 @@ def convert_docker_manifests_to_oci(directory: Path) -> Dict[str, OCIImageManife
         FileNotFoundError: If no Docker manifests are found
         ValueError: If manifest format is invalid or layers have wrong media type
     """
-    manifest_files = []
-    for blob in (directory / "blobs" / "sha256").iterdir():
+    blobs_path = directory / "blobs" / "sha256"
+    img_manifest_files = []
+    for blob in blobs_path.iterdir():
         try:
             with open(blob, 'r') as f:
                 data = json.load(f)
                 if data.get("mediaType") == DOCKER_MANIFEST_V2:
-                    manifest_files.append(blob)
+                    img_manifest_files.append(blob)
         except (json.JSONDecodeError, KeyError):
             continue
     
-    if not manifest_files:
+    if not img_manifest_files:
         raise FileNotFoundError(f"No Docker distribution manifests found in {directory}")
 
-    converted = {f.name: convert_docker_manifest_to_oci(f, directory) for f in manifest_files}
+    converted = {f.name: convert_docker_manifest_to_oci(f, directory) for f in img_manifest_files}
+
+    list_manifest_files = []
+    for blob in blobs_path.iterdir():
+        try:
+            with open(blob, 'r') as f:
+                data = json.load(f)
+                if data.get("mediaType") == DOCKER_LIST_V2:
+                    list_manifest_files.append(blob)
+        except (json.JSONDecodeError, KeyError):
+            continue
+    for f in list_manifest_files:
+        with open(f, 'r') as file_handle:
+            index = OCIImageIndex.model_validate_json(file_handle.read())
+            for manifest in index.manifests:
+                if manifest.mediaType == DOCKER_MANIFEST_V2:
+                    new_digest = converted[manifest.digest.removeprefix("sha256:")]
+                    manifest.digest = "sha256:" + new_digest
+                    manifest.size = os.stat(blobs_path / new_digest).st_size
+                    manifest.mediaType = MediaTypes.manifest
+                else:
+                    raise ValueError(f"Expected manifest mediaType {DOCKER_MANIFEST_V2}, got {manifest.mediaType}")  # TODO: not implemented scenario
+            index.mediaType = MediaTypes.index
+            index_json = index.model_dump_json(exclude_none=True)
+            new_index_hash = compute_hash_of_str(index_json)
+            (blobs_path / new_index_hash).write_text(index_json)
+            converted[f.name] = new_index_hash
+
     return converted
+
 
 def convert_docker_manifest_to_oci(manifest_file: Path, directory: Path) -> str:
     with open(manifest_file, 'r') as f:
