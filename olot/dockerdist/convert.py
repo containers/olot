@@ -21,12 +21,14 @@ def check_if_oci_layout_contains_docker_manifests(directory: Path) -> bool:
     """
     blobs_path = directory / "blobs" / "sha256"
     for blob in blobs_path.iterdir():
+        if not blob.is_file():  # although not expecting the scenario based on spec.
+            continue
         try:
             with open(blob, 'r') as f:
                 data = json.load(f)
                 if data.get("mediaType") == DOCKER_MANIFEST_V2:
                     return True
-        except (json.JSONDecodeError, KeyError, UnicodeDecodeError):
+        except (json.JSONDecodeError, UnicodeDecodeError, OSError):
             continue
     return False
 
@@ -53,7 +55,7 @@ def convert_docker_manifests_to_oci(directory: Path) -> Dict[str, OCIImageManife
                 data = json.load(f)
                 if data.get("mediaType") == DOCKER_MANIFEST_V2:
                     img_manifest_files.append(blob)
-        except (json.JSONDecodeError, KeyError):
+        except (json.JSONDecodeError, UnicodeDecodeError, OSError):
             continue
     
     if not img_manifest_files:
@@ -68,7 +70,7 @@ def convert_docker_manifests_to_oci(directory: Path) -> Dict[str, OCIImageManife
                 data = json.load(f)
                 if data.get("mediaType") == DOCKER_LIST_V2:
                     list_manifest_files.append(blob)
-        except (json.JSONDecodeError, KeyError):
+        except (json.JSONDecodeError, UnicodeDecodeError, OSError):
             continue
     for f in list_manifest_files:
         with open(f, 'r') as file_handle:
