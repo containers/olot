@@ -32,7 +32,7 @@ def check_if_oci_layout_contains_docker_manifests(directory: Path) -> bool:
     return False
 
 
-def convert_docker_manifests_to_oci(directory: Path) -> Dict[str, OCIImageManifest]:
+def convert_docker_manifests_to_oci(directory: Path) -> Dict[str, str]:
     """
     Scan directory for Docker distribution manifests and convert them to OCI format.
     
@@ -71,8 +71,8 @@ def convert_docker_manifests_to_oci(directory: Path) -> Dict[str, OCIImageManife
                     list_manifest_files.append(blob)
         except (json.JSONDecodeError, UnicodeDecodeError, OSError):
             continue
-    for f in list_manifest_files:
-        with open(f, 'r') as file_handle:
+    for blob_file in list_manifest_files:
+        with open(blob_file, 'r') as file_handle:
             index = OCIImageIndex.model_validate_json(file_handle.read())
             for manifest in index.manifests:
                 if manifest.mediaType == DOCKER_MANIFEST_V2:
@@ -86,17 +86,17 @@ def convert_docker_manifests_to_oci(directory: Path) -> Dict[str, OCIImageManife
             index_json = index.model_dump_json(exclude_none=True)
             new_index_hash = compute_hash_of_str(index_json)
             (blobs_path / new_index_hash).write_text(index_json)
-            converted[f.name] = new_index_hash
+            converted[blob_file.name] = new_index_hash
 
-    index_json = OCIImageIndex.model_validate_json((directory / "index.json").read_text())
-    for manifest in index_json.manifests:
+    index = OCIImageIndex.model_validate_json((directory / "index.json").read_text())
+    for manifest in index.manifests:
         new_digest = converted[manifest.digest.removeprefix("sha256:")]
         manifest.digest = "sha256:" + new_digest
         manifest.size = os.stat(blobs_path / new_digest).st_size
         with open(blobs_path / new_digest, 'r') as f:
             new_media_type = json.load(f).get("mediaType")
             manifest.mediaType = new_media_type
-    new_index_json = index_json.model_dump_json(exclude_none=True)
+    new_index_json = index.model_dump_json(exclude_none=True)
     (directory / "index.json").write_text(new_index_json)
 
     return converted
@@ -116,7 +116,10 @@ def convert_docker_manifest_to_oci(manifest_file: Path, directory: Path) -> str:
         oci_layer = ContentDescriptor(
             mediaType=MediaTypes.layer_gzip,
             size=layer["size"],
-            digest=layer["digest"]
+            digest=layer["digest"],
+            urls=None,
+            data=None,
+            artifactType=None
         )
         oci_layers.append(oci_layer)
 
@@ -143,13 +146,17 @@ def convert_docker_manifest_to_oci(manifest_file: Path, directory: Path) -> str:
     oci_config_descriptor = ContentDescriptor(
         mediaType=MediaTypes.config,
         size=len(oci_config_json.encode('utf-8')),
-        digest=new_config_digest
+        digest=new_config_digest,
+        urls=None,
+        data=None,
+        artifactType=None
     )
     (blobs_path / new_config_hash).write_text(oci_config_json)
 
     oci_manifest = OCIImageManifest(
         schemaVersion=2,
         mediaType=MediaTypes.manifest,
+        artifactType=None,
         config=oci_config_descriptor,
         layers=oci_layers
     )
