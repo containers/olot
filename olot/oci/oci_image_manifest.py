@@ -137,6 +137,7 @@ class OCIImageManifest(BaseModel):
     layers: List[ContentDescriptor] = Field(..., min_length=1)
     annotations: Optional[Annotations] = None
 
+
 def empty_config() -> ContentDescriptor:
     return ContentDescriptor(
         mediaType=MediaTypes.empty,
@@ -146,6 +147,7 @@ def empty_config() -> ContentDescriptor:
         urls=None,
         artifactType=None,
     )
+
 
 def create_oci_image_manifest(
     schemaVersion: int = 2,
@@ -165,6 +167,7 @@ def create_oci_image_manifest(
         layers=layers,
         annotations=annotations,
     )
+
 
 def get_file_media_type(file_path: os.PathLike) -> str:
     """
