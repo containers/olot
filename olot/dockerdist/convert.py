@@ -14,6 +14,23 @@ DOCKER_MANIFEST_V2 = "application/vnd.docker.distribution.manifest.v2+json"
 DOCKER_LAYER_TAR_GZIP = "application/vnd.docker.image.rootfs.diff.tar.gzip"
 DOCKER_CONFIG_V1 = "application/vnd.docker.container.image.v1+json"
 
+
+def check_if_oci_layout_contains_docker_manifests(directory: Path) -> bool:
+    """
+    Check if the OCI layout contains Docker distribution manifests.
+    """
+    blobs_path = directory / "blobs" / "sha256"
+    for blob in blobs_path.iterdir():
+        try:
+            with open(blob, 'r') as f:
+                data = json.load(f)
+                if data.get("mediaType") == DOCKER_MANIFEST_V2:
+                    return True
+        except (json.JSONDecodeError, KeyError, UnicodeDecodeError):
+            continue
+    return False
+
+
 def convert_docker_manifests_to_oci(directory: Path) -> Dict[str, OCIImageManifest]:
     """
     Scan directory for Docker distribution manifests and convert them to OCI format.

@@ -8,7 +8,7 @@ from pathlib import Path
 from pprint import pprint
 import shutil
 
-from olot.dockerdist.convert import convert_docker_manifests_to_oci
+from olot.dockerdist.convert import check_if_oci_layout_contains_docker_manifests, convert_docker_manifests_to_oci
 from olot.oci.oci_image_manifest import OCIImageManifest
 from olot.oci.oci_common import MediaTypes
 from tests.common import get_test_data_path
@@ -20,7 +20,7 @@ def test_convert_docker_manifest_to_oci(tmp_path: Path):
     target_ocilayout = tmp_path / "myocilayout"
     shutil.copytree(test_data_dir, target_ocilayout)
     
-    oci_manifests = convert_docker_manifests_to_oci(test_data_dir)
+    oci_manifests = convert_docker_manifests_to_oci(target_ocilayout)
     pprint(oci_manifests)
     expected_oci_manifests = {
         '52fd1a38c0cb8cb5669c172657a2f7316eb581fa263e6a72cee6cfa3c359d200': '52c14a52e8b62bbac09478f3f2fb71011c6afb2583ce763453193e6c4af62c7e',
@@ -30,5 +30,11 @@ def test_convert_docker_manifest_to_oci(tmp_path: Path):
     assert oci_manifests == expected_oci_manifests
 
 
-if __name__ == "__main__":
-    test_convert_docker_manifest_to_oci()
+def test_check_if_oci_layout_contains_docker_manifests():
+    assert check_if_oci_layout_contains_docker_manifests(get_test_data_path() / "dockerdist1")
+    assert not check_if_oci_layout_contains_docker_manifests(get_test_data_path() / "ocilayout1")
+    assert not check_if_oci_layout_contains_docker_manifests(get_test_data_path() / "ocilayout2")
+    assert not check_if_oci_layout_contains_docker_manifests(get_test_data_path() / "ocilayout3")
+    assert not check_if_oci_layout_contains_docker_manifests(get_test_data_path() / "ocilayout4")
+    assert not check_if_oci_layout_contains_docker_manifests(get_test_data_path() / "ocilayout5")
+
