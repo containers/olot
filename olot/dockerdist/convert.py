@@ -1,6 +1,6 @@
 import json
 from pathlib import Path
-from typing_extensions import List
+from typing import Dict, List
 from olot.oci.oci_config import OCIManifestConfig
 from olot.utils.types import compute_hash_of_str
 from olot.oci.oci_image_manifest import OCIImageManifest, ContentDescriptor
@@ -11,7 +11,7 @@ DOCKER_MANIFEST_V2 = "application/vnd.docker.distribution.manifest.v2+json"
 DOCKER_LAYER_TAR_GZIP = "application/vnd.docker.image.rootfs.diff.tar.gzip"
 DOCKER_CONFIG_V1 = "application/vnd.docker.container.image.v1+json"
 
-def convert_docker_manifests_to_oci(directory: Path) -> List[OCIImageManifest]:
+def convert_docker_manifests_to_oci(directory: Path) -> Dict[str, OCIImageManifest]:
     """
     Scan directory for Docker distribution manifests and convert them to OCI format.
     
@@ -26,22 +26,22 @@ def convert_docker_manifests_to_oci(directory: Path) -> List[OCIImageManifest]:
         ValueError: If manifest format is invalid or layers have wrong media type
     """
     manifest_files = []
-    for file_path in (directory / "blobs" / "sha256"):
+    for blob in (directory / "blobs" / "sha256").iterdir():
         try:
-            with open(file_path, 'r') as f:
+            with open(blob, 'r') as f:
                 data = json.load(f)
                 if data.get("mediaType") == DOCKER_MANIFEST_V2:
-                    manifest_files.append(file_path)
+                    manifest_files.append(blob)
         except (json.JSONDecodeError, KeyError):
             continue
     
     if not manifest_files:
         raise FileNotFoundError(f"No Docker distribution manifests found in {directory}")
 
-    return [convert_docker_manifest_to_oci(f) for f in manifest_files]
+    converted = {f.name: convert_docker_manifest_to_oci(f, directory) for f in manifest_files}
+    return converted
 
-
-def convert_docker_manifest_to_oci(manifest_file: Path, directory: Path) -> List[OCIImageManifest]:
+def convert_docker_manifest_to_oci(manifest_file: Path, directory: Path) -> str:
     with open(manifest_file, 'r') as f:
         docker_manifest_data = json.load(f)
 
@@ -52,24 +52,22 @@ def convert_docker_manifest_to_oci(manifest_file: Path, directory: Path) -> List
     for layer in docker_manifest_data.get("layers", []):
         if layer.get("mediaType") != DOCKER_LAYER_TAR_GZIP:
             raise ValueError(f"Expected layer mediaType {DOCKER_LAYER_TAR_GZIP}, got {layer.get('mediaType')}")
-        
-        # Convert to OCI layer descriptor
+
         oci_layer = ContentDescriptor(
             mediaType=MediaTypes.layer_gzip,
             size=layer["size"],
             digest=layer["digest"]
         )
         oci_layers.append(oci_layer)
-    
-    # Read and parse Docker config
+
     config_descriptor = docker_manifest_data.get("config", {})
     if config_descriptor.get("mediaType") != DOCKER_CONFIG_V1:
         raise ValueError(f"Expected config mediaType {DOCKER_CONFIG_V1}, got {config_descriptor.get('mediaType')}")
-    
-    # Find and read the config file
+
     config_digest = config_descriptor["digest"]
     config_hash = config_digest.replace("sha256:", "")
-    config_file = directory / "blobs" / "sha256" / config_hash
+    blobs_path = directory / "blobs" / "sha256"
+    config_file = blobs_path / config_hash
     
     if not config_file.exists():
         raise FileNotFoundError(f"Config file not found: {config_file}")
@@ -87,6 +85,7 @@ def convert_docker_manifest_to_oci(manifest_file: Path, directory: Path) -> List
         size=len(oci_config_json.encode('utf-8')),
         digest=new_config_digest
     )
+    (blobs_path / new_config_hash).write_text(oci_config_json)
 
     oci_manifest = OCIImageManifest(
         schemaVersion=2,
@@ -94,6 +93,9 @@ def convert_docker_manifest_to_oci(manifest_file: Path, directory: Path) -> List
         config=oci_config_descriptor,
         layers=oci_layers
     )
-    
-    return oci_manifest
+    oci_manifest_json = oci_manifest.model_dump_json(exclude_none=True)
+    oci_manifest_hash = compute_hash_of_str(oci_manifest_json)
+    (blobs_path / oci_manifest_hash).write_text(oci_manifest_json)
+
+    return oci_manifest_hash
 
