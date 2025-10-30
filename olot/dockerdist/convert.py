@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Dict, List
 from olot.oci.oci_config import OCIManifestConfig
 from olot.oci.oci_image_index import OCIImageIndex
+from olot.oci.oci_image_layout import OCIImageLayout
 from olot.utils.types import compute_hash_of_str
 from olot.oci.oci_image_manifest import OCIImageManifest, ContentDescriptor
 from olot.oci.oci_common import MediaTypes
@@ -69,8 +70,18 @@ def convert_docker_manifests_to_oci(directory: Path) -> Dict[str, OCIImageManife
             (blobs_path / new_index_hash).write_text(index_json)
             converted[f.name] = new_index_hash
 
-    return converted
+    index_json = OCIImageIndex.model_validate_json((directory / "index.json").read_text())
+    for manifest in index_json.manifests:
+        new_digest = converted[manifest.digest.removeprefix("sha256:")]
+        manifest.digest = "sha256:" + new_digest
+        manifest.size = os.stat(blobs_path / new_digest).st_size
+        with open(blobs_path / new_digest, 'r') as f:
+            new_media_type = json.load(f).get("mediaType")
+            manifest.mediaType = new_media_type
+    new_index_json = index_json.model_dump_json(exclude_none=True)
+    (directory / "index.json").write_text(new_index_json)
 
+    return converted
 
 def convert_docker_manifest_to_oci(manifest_file: Path, directory: Path) -> str:
     with open(manifest_file, 'r') as f:
