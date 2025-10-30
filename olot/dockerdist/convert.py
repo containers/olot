@@ -1,10 +1,9 @@
 import json
 import os
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict
 from olot.oci.oci_config import OCIManifestConfig
 from olot.oci.oci_image_index import OCIImageIndex
-from olot.oci.oci_image_layout import OCIImageLayout
 from olot.utils.types import compute_hash_of_str
 from olot.oci.oci_image_manifest import OCIImageManifest, ContentDescriptor
 from olot.oci.oci_common import MediaTypes

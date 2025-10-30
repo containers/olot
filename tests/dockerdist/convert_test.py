@@ -3,14 +3,11 @@
 Test for Docker distribution manifest to OCI conversion.
 """
 
-import json
 from pathlib import Path
 from pprint import pprint
 import shutil
 
 from olot.dockerdist.convert import check_if_oci_layout_contains_docker_manifests, convert_docker_manifests_to_oci
-from olot.oci.oci_image_manifest import OCIImageManifest
-from olot.oci.oci_common import MediaTypes
 from tests.common import get_test_data_path
 
 
