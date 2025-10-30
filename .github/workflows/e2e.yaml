@@ -367,6 +367,7 @@ jobs:
         OCI_REGISTRY_SOURCE=quay.io/mmortari/hello-world-wait:dockerdistribution
         OCI_REGISTRY_DESTINATION=localhost:5001/nstestorg/modelcar
         rm -rf $IMAGE_DIR
+        # Using oras copy and chmod analogous to Konflux https://github.com/konflux-ci/build-definitions/blob/5bd79d493ca1ba04512c5f6e1f41f427a3c94e03/task/modelcar-oci-ta/0.1/modelcar-oci-ta.yaml#L161-L162
         oras copy --to-oci-layout ${OCI_REGISTRY_SOURCE} ${IMAGE_DIR}:latest
         chmod -R g+w "${IMAGE_DIR}"
         poetry run olot $IMAGE_DIR --modelcard tests/data/sample-model/README.md tests/data/sample-model/model.joblib
