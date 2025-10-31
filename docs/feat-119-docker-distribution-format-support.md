@@ -64,6 +64,8 @@ flowchart TD
     D --> E[Add Model Layers]
     E --> F[Optional: Add ModelPack Manifest]
     F --> G[Output OCI Layout]
+    style B fill:#90DD90,stroke:#00EE00,stroke-width:2px,color:#003300
+    style C fill:#90DD90,stroke:#00EE00,stroke-width:2px,color:#003300
 ```
 
 # Validation
