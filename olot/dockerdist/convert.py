@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 from pathlib import Path
 from typing import Dict
@@ -13,6 +14,7 @@ DOCKER_MANIFEST_V2 = "application/vnd.docker.distribution.manifest.v2+json"
 DOCKER_LAYER_TAR_GZIP = "application/vnd.docker.image.rootfs.diff.tar.gzip"
 DOCKER_CONFIG_V1 = "application/vnd.docker.container.image.v1+json"
 
+logger = logging.getLogger(__name__)
 
 def check_if_oci_layout_contains_docker_manifests(directory: Path) -> bool:
     """
@@ -99,7 +101,10 @@ def convert_docker_manifests_to_oci(directory: Path) -> Dict[str, str]:
     new_index_json = index.model_dump_json(exclude_none=True)
     (directory / "index.json").write_text(new_index_json)
 
+    for from_dd_hash, to_oci_hash in converted.items():
+        logger.info("Docker distribution manifest %s is now at OCI manifest %s", from_dd_hash, to_oci_hash)
     return converted
+
 
 def convert_docker_manifest_to_oci(manifest_file: Path, directory: Path) -> str:
     with open(manifest_file, 'r') as f:

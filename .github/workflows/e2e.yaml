@@ -325,7 +325,7 @@ jobs:
         diff -r olot/embedded_oci_layout /tmp/embedded_oci_layout
 
   e2e-dockerdistribution:
-    name: E2E using Skopeo and Docker Distribution for base-image
+    name: E2E using ORAS as in Konflux build definitions and Docker Distribution format for base-image
     runs-on: ubuntu-24.04
     steps:
     - name: Checkout repository
@@ -362,7 +362,7 @@ jobs:
         kubectl patch configmap/inferenceservice-config -n kserve --type=strategic -p '{"data": {"deploy": "{\"defaultDeploymentMode\": \"RawDeployment\"}"}}'
         e2e/enable-modelcar.sh
     - name: Run like Konflux build defintions, and load image in KinD for amd64
-      run: | 
+      run: |
         IMAGE_DIR=download
         OCI_REGISTRY_SOURCE=quay.io/mmortari/hello-world-wait:dockerdistribution
         OCI_REGISTRY_DESTINATION=localhost:5001/nstestorg/modelcar
@@ -398,3 +398,38 @@ jobs:
         curl -s -H "Content-Type: application/json" -d @e2e/data/input0.json http://localhost:8080/v2/models/my-inference-service/infer | jq
         curl -s -H "Content-Type: application/json" -d @e2e/data/input1.json http://localhost:8080/v2/models/my-inference-service/infer | jq
         curl -s -H "Content-Type: application/json" -d @e2e/data/input4.json http://localhost:8080/v2/models/my-inference-service/infer | jq
+        kill $PID
+    - name: Run like Konflux build defintions using directly oras copy on the amd64 image, and load image in KinD
+      run: | 
+        IMAGE_DIR=download
+        AMD64_SHA=$(skopeo inspect --raw docker://quay.io/mmortari/hello-world-wait:dockerdistribution | jq -r '.manifests[] | select(.platform.architecture == "amd64") | .digest')
+        OCI_REGISTRY_SOURCE=quay.io/mmortari/hello-world-wait@$AMD64_SHA
+        OCI_REGISTRY_DESTINATION=localhost:5001/nstestorg/modelcar2
+        rm -rf $IMAGE_DIR
+        # Using oras copy and chmod analogous to Konflux https://github.com/konflux-ci/build-definitions/blob/5bd79d493ca1ba04512c5f6e1f41f427a3c94e03/task/modelcar-oci-ta/0.1/modelcar-oci-ta.yaml#L161-L162
+        oras copy --to-oci-layout ${OCI_REGISTRY_SOURCE} ${IMAGE_DIR}:latest
+        chmod -R g+w "${IMAGE_DIR}"
+        poetry run olot $IMAGE_DIR --modelcard tests/data/sample-model/README.md tests/data/sample-model/model.joblib
+        skopeo copy --tls-verify=false oci:${IMAGE_DIR}:latest docker://${OCI_REGISTRY_DESTINATION}
+        kind load docker-image -n "olot-e2e" "localhost:5001/nstestorg/modelcar2:v2"
+    - name: Apply Isvc using Modelcar # change Isvc and await for it to be ready again.
+      run: |
+        kubectl patch isvc/my-inference-service \
+          --type='json' \
+          -p='[{"op": "replace", "path": "/spec/predictor/model/storageUri", "value": "oci://localhost:5001/nstestorg/modelcar2:v2"}]'
+        kubectl wait --for=condition=Ready isvc/my-inference-service --timeout=240s
+        kubectl describe isvc/my-inference-service
+    - name: Basic testing of Isvc that has Modelcar
+      run: |
+        echo "Starting port-forward..."
+        kubectl port-forward svc/my-inference-service-predictor 8080:80 &
+        PID=$!
+        sleep 2
+        echo "I have launched port-forward in background with: $PID."
+        echo "Check that OIP return the expected name"
+        curl -s http://localhost:8080/v2/models | jq -e '.models | index("my-inference-service") != null'
+        echo "Check that OIP produces an Inference Prediction"
+        curl -s -H "Content-Type: application/json" -d @e2e/data/input0.json http://localhost:8080/v2/models/my-inference-service/infer | jq
+        curl -s -H "Content-Type: application/json" -d @e2e/data/input1.json http://localhost:8080/v2/models/my-inference-service/infer | jq
+        curl -s -H "Content-Type: application/json" -d @e2e/data/input4.json http://localhost:8080/v2/models/my-inference-service/infer | jq
+        kill $PID
