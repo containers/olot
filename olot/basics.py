@@ -8,6 +8,7 @@ import tarfile
 from typing import Dict, List, Sequence
 import typing
 
+from olot.dockerdist.convert import check_if_oci_layout_contains_docker_manifests, convert_docker_manifests_to_oci
 from olot.modelpack.model_config import Model, ModelConfig, ModelDescriptor, ModelFS, Type
 from olot.oci.oci_config import HistoryItem, OCIManifestConfig
 
@@ -67,6 +68,9 @@ def oci_layers_on_top(
         modelcard = Path(modelcard).resolve()
 
     verify_ocilayout(ocilayout)
+    if check_if_oci_layout_contains_docker_manifests(ocilayout):
+        logger.warning("OCI layout contains Docker distribution manifests, converting them to OCI format")
+        convert_docker_manifests_to_oci(ocilayout)
     ocilayout_root_index: OCIImageIndex = read_ocilayout_root_index(ocilayout)
     ocilayout_indexes: Dict[str, OCIImageIndex] = crawl_ocilayout_indexes(ocilayout, ocilayout_root_index)
     ocilayout_manifests: Dict[str, OCIImageManifest] = crawl_ocilayout_manifests(ocilayout, ocilayout_indexes, ocilayout_root_index)
