@@ -411,6 +411,7 @@ jobs:
         chmod -R g+w "${IMAGE_DIR}"
         poetry run olot $IMAGE_DIR --modelcard tests/data/sample-model/README.md tests/data/sample-model/model.joblib
         skopeo copy --tls-verify=false oci:${IMAGE_DIR}:latest docker://${OCI_REGISTRY_DESTINATION}
+        docker pull ${OCI_REGISTRY_DESTINATION}
         kind load docker-image -n "olot-e2e" ${OCI_REGISTRY_DESTINATION}
     - name: Apply Isvc using Modelcar # change Isvc and await for it to be ready again.
       run: |
