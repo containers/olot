@@ -62,7 +62,7 @@ flowchart TD
     B -->|if not found| D[Update Index References]
     C --> D[Update Index References]
     D --> E[Add Model Layers]
-    E --> F[(Optional) Add ModelPack Manifest]
+    E --> F[Optional: Add ModelPack Manifest]
     F --> G[Output OCI Layout]
 ```
 
