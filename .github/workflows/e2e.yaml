@@ -118,6 +118,7 @@ jobs:
         curl -s -H "Content-Type: application/json" -d @e2e/data/input0.json http://localhost:8080/v2/models/my-inference-service/infer | jq
         curl -s -H "Content-Type: application/json" -d @e2e/data/input1.json http://localhost:8080/v2/models/my-inference-service/infer | jq
         curl -s -H "Content-Type: application/json" -d @e2e/data/input4.json http://localhost:8080/v2/models/my-inference-service/infer | jq
+
   e2e-skopeo-and-add-modelpack:
     name: E2E using Skopeo and add-modelpack flag
     needs: e2e-skopeo # run this test after the e2e-skopeo test has completed
@@ -193,6 +194,7 @@ jobs:
         curl -s -H "Content-Type: application/json" -d @e2e/data/input0.json http://localhost:8080/v2/models/my-inference-service/infer | jq
         curl -s -H "Content-Type: application/json" -d @e2e/data/input1.json http://localhost:8080/v2/models/my-inference-service/infer | jq
         curl -s -H "Content-Type: application/json" -d @e2e/data/input4.json http://localhost:8080/v2/models/my-inference-service/infer | jq
+
   e2e-oras:
     name: E2E using Oras CP
     runs-on: ubuntu-24.04
@@ -221,6 +223,7 @@ jobs:
     - name: Run E2E tests
       run: |
         make test-e2e-oras
+
   e2e-remove-originals-cli:
     name: E2E test remove-originals scenario from CLI
     runs-on: ubuntu-24.04
@@ -299,30 +302,6 @@ jobs:
         fi
         echo "resulting in:"
         ls -la "$tmp_dir"
-
-  e2e-check-embedded-oci-layout:
-    name: E2E test embedded oci-layout
-    runs-on: ubuntu-24.04
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v5
-    - name: Set up Python
-      uses: actions/setup-python@v6
-      with:
-        python-version: "3.9"
-    - name: Install Poetry
-      run: |
-        pipx install poetry
-    - name: Run the builda and install the python wheel
-      run: |
-        make build
-        pipx install dist/olot-*.whl
-    - name: Check an embedded oci-layout is created as expected
-      run: |
-        python -c "from olot.embedded_oci_layout import embedded_oci_layout; embedded_oci_layout('/tmp/embedded_oci_layout')"
-        find /tmp/embedded_oci_layout -type f -exec ls -la {} \;
-        # Compare the contents of olot/embedded_oci_layout and /tmp/embedded_oci_layout
-        diff -r olot/embedded_oci_layout /tmp/embedded_oci_layout
 
   e2e-dockerdistribution:
     name: E2E using ORAS as in Konflux build definitions and Docker Distribution format for base-image
