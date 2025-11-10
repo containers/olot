@@ -65,9 +65,9 @@ jobs:
       - name: Install Poetry
         run: |
           pipx install poetry
-      - name: make clean build lint
+      - name: make build lint
         run: |
-          make clean build lint
+          make build lint
       - name: Check if there are uncommitted file changes
         run: |
           clean=$(git status --porcelain)
