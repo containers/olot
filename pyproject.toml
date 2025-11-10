@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "olot"
-version = "0.1.11"
+version = "0.1.12"
 description = "oci layers on top"
 authors = ["tarilabs <matteo.mortari@gmail.com>"]
 readme = "README.md"
