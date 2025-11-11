@@ -413,3 +413,26 @@ jobs:
         curl -s -H "Content-Type: application/json" -d @e2e/data/input1.json http://localhost:8080/v2/models/my-inference-service/infer | jq
         curl -s -H "Content-Type: application/json" -d @e2e/data/input4.json http://localhost:8080/v2/models/my-inference-service/infer | jq
         kill $PID
+
+  e2e-check-embedded-oci-layout:
+    name: E2E test embedded oci-layout via Olot extra
+    runs-on: ubuntu-24.04
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v5
+    - name: Set up Python
+      uses: actions/setup-python@v6
+      with:
+        python-version: "3.9"
+    - name: Install Poetry
+      run: |
+        pipx install poetry
+    - name: Run the builda and install the python wheel
+      run: |
+        make build
+        pip install "$(ls dist/olot-*.whl | head -1)"[modelcar-base-image]
+    - name: Check an embedded oci-layout is created as expected
+      run: |
+        python -c "from modelcar_base_image.embedded_oci_layout import embedded_oci_layout; embedded_oci_layout('/tmp/embedded_oci_layout')"
+        find /tmp/embedded_oci_layout -type f -exec ls -la {} \;
+        python -c "from olot.oci.oci_image_layout import verify_ocilayout; from pathlib import Path; verify_ocilayout(Path('/tmp/embedded_oci_layout'))"
