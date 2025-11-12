@@ -45,6 +45,8 @@ def oci_layers_on_top(
         model_files: Sequence[os.PathLike],
         modelcard: typing.Union[os.PathLike, None] = None,
         *,
+        labels: typing.Union[dict[str, str], None] = None,
+        annotations: typing.Union[dict[str, str], None] = None,
         remove_originals: typing.Union[RemoveOriginals, None] = None,
         add_modelpack: typing.Union[bool, None] = None):
     """
@@ -54,6 +56,8 @@ def oci_layers_on_top(
         ocilayout: The oci-layout directory of the base image.
         model_files: PathLike array to be added as new blob layers.
         modelcard: PathLike of the README.md of the ModelCarD, will be added as the last layer with compression and annotations. If indicated, it shouldn't be part of model_files.
+        labels: labels to be added to the OCI Image Config.
+        annotations: annotations to be added to the OCI Image Manifest.
         remove_originals: whether to remove the original content files after having added the layers, default: None.
         add_modelpack: whether to add a ModelPack manifest to the multi-arch oci-layout only if not already present, default: None.
     """
@@ -132,6 +136,15 @@ def oci_layers_on_top(
             )
             mc.history.append(hi)
             manifest.layers.append(cd)
+        # add labels to the OCI Image Config
+        if labels is not None:
+            if mc.config is None:  # should rarely happen, but just in case
+                logger.warning("OCI Image Config is missing, will not add labels")
+            else:
+                if mc.config.Labels is None:
+                    mc.config.Labels = {}
+                mc.config.Labels.update(labels)
+        # save the OCI Image Config
         mc_json = mc.model_dump_json(exclude_none=True)
         with open(ocilayout / "blobs" / "sha256" / config_sha, "w") as cf:
             cf.write(mc_json)
@@ -146,7 +159,10 @@ def oci_layers_on_top(
         manifest.annotations["io.opendatahub.author"] = "olot"
         if modelcard is not None:
             manifest.annotations["io.opendatahub.layers.modelcard"] = "sha256:"+next(reversed(new_layers.keys())) # identify ModelCarD layer from Image Manifest
+        if annotations is not None:
+            manifest.annotations.update(annotations)
         check_manifest(manifest, mc)
+        # save the OCI Image Manifest
         manifest_json = manifest.model_dump_json(exclude_none=True)
         with open(ocilayout / "blobs" / "sha256" / manifest_hash, "w") as cf:
             cf.write(manifest_json)

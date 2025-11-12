@@ -418,3 +418,42 @@ def test_modelcard_in_model_files_and_remove_originals(tmp_path: Path, caplog):
     print("checking for remove_originals=RemoveOriginals.ALL")
     with pytest.raises(ValueError, match="ModelCard detected in model_files, while remove_originals flag is set; this is not allowed as it would remove the original ModelCard before having a chance of adding it as its proper layer."):
         oci_layers_on_top(target_ocilayout, models, modelcard, remove_originals=RemoveOriginals.ALL)
+
+
+def test_add_labels_and_annotations(tmp_path: Path):
+    """Test adding labels and annotations to the OCI Image Config and the OCI Image Manifest
+    """
+    test_sample_model = sample_model_path()
+    test_ocilayout2 = get_test_data_path() / "ocilayout5"
+    target_ocilayout = tmp_path / "myocilayout"
+    shutil.copytree(test_ocilayout2, target_ocilayout, copy_function=shutil.copy2)
+    target_model = tmp_path / "models"
+    shutil.copytree(test_sample_model, target_model, copy_function=shutil.copy2)
+    print(os.listdir(target_model))
+
+    models = [
+        target_model / "model.joblib",
+        target_model / "hello.md"
+    ]
+    for model in models:
+        assert model.exists()
+    modelcard = target_model / "README.md"
+    assert modelcard.exists()
+
+    # typically labels and annotations are the same, but here we test both separately
+    oci_layers_on_top(target_ocilayout, models, modelcard, labels={"a": "b"}, annotations={"c": "d"})
+    ocilayout_root_index = read_ocilayout_root_index(target_ocilayout)
+    assert len(ocilayout_root_index.manifests) == 1
+    ocilayout_indexes: Dict[str, OCIImageIndex] = crawl_ocilayout_indexes(target_ocilayout, ocilayout_root_index)
+    assert len(ocilayout_indexes) == 0
+    ocilayout_manifests: Dict[str, OCIImageManifest] = crawl_ocilayout_manifests(target_ocilayout, ocilayout_indexes, ocilayout_root_index)
+    assert len(ocilayout_manifests) == 1
+    manifest0: OCIImageManifest = next(iter(ocilayout_manifests.values()))
+    assert manifest0.annotations
+    assert manifest0.annotations["c"] == "d"
+    config_digest = manifest0.config.digest.removeprefix("sha256:")
+    with open(target_ocilayout / "blobs" / "sha256" / config_digest, "r") as f:
+        mc = OCIManifestConfig.model_validate_json(f.read())
+        assert mc.config
+        assert mc.config.Labels
+        assert mc.config.Labels["a"] == "b"
