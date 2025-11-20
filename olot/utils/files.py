@@ -163,33 +163,34 @@ def handle_remove(path: os.PathLike):
 
 def walk_files(root_path: os.PathLike) -> List[Path]:
     """
-    Recursively walks a directory and returns all files as relative paths, skipping any symlinks.
-    
+    Recursively walks a directory and returns all files as relative paths, skipping any symlinks
+    and the `lost+found` directory.
+
     Args:
         root_path: The root directory to walk recursively
-        
+
     Returns:
         List of relative file paths as strings
-        
+
     Raises:
         ValueError: If the provided path doesn't exist or isn't a directory
         OSError: If an error occurs during directory traversal
     """
     if not isinstance(root_path, Path):
         root_path = Path(root_path)
-    
+
     if not root_path.exists():
         raise FileNotFoundError(f"Path '{root_path}' does not exist")
-    
+
     if not root_path.is_dir():
         raise NotADirectoryError(f"Path '{root_path}' is not a directory")
-    
+
     try:
         relative_files = []
         for dirpath, dirnames, filenames in os.walk(str(root_path)):
-            # Skip symlink directories by removing them from dirnames
-            dirnames[:] = [d for d in dirnames if not os.path.islink(os.path.join(dirpath, d))]
-            
+            # Skip symlink directories and lost+found
+            dirnames[:] = [d for d in dirnames if not os.path.islink(os.path.join(dirpath, d)) and d != 'lost+found']
+
             for filename in filenames:
                 full_file_path = os.path.join(dirpath, filename)
                 # Skip symlink files
@@ -197,7 +198,7 @@ def walk_files(root_path: os.PathLike) -> List[Path]:
                     file_path = Path(full_file_path)
                     relative_path = file_path.relative_to(root_path)
                     relative_files.append(relative_path)
-        
+
         return sorted(relative_files)  # Return sorted for consistent ordering
     except OSError as e:
         raise OSError(f"Error walking directory '{root_path}': {e}") from e
