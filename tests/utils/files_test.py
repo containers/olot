@@ -329,13 +329,32 @@ def test_walk_files_hidden_files(tmp_path):
     (tmp_path / "normal_file.txt").write_text("normal")
     (tmp_path / "normal_dir").mkdir()
     (tmp_path / "normal_dir" / "file_in_normal.txt").write_text("content")
-    
+
     result = walk_files(tmp_path)
-    
+
     expected = [
         Path(".hidden_dir/file_in_hidden.txt"),
         Path(".hidden_file"),
         Path("normal_dir/file_in_normal.txt"),
+        Path("normal_file.txt")
+    ]
+    assert result == expected
+
+
+def test_walk_files_skip_lost_found(tmp_path):
+    """Test walk_files() skips the lost+found directory"""
+    (tmp_path / "lost+found").mkdir()
+    (tmp_path / "lost+found" / "recovered_file.txt").write_text("recovered")
+    (tmp_path / "normal_file.txt").write_text("normal")
+    (tmp_path / "normal_dir").mkdir()
+    (tmp_path / "normal_dir" / "file.txt").write_text("content")
+    (tmp_path / "normal_dir" / "lost+found").mkdir()
+    (tmp_path / "normal_dir" / "lost+found" / "nested_recovered.txt").write_text("nested")
+
+    result = walk_files(tmp_path)
+
+    expected = [
+        Path("normal_dir/file.txt"),
         Path("normal_file.txt")
     ]
     assert result == expected
