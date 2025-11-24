@@ -467,4 +467,6 @@ jobs:
         poetry run olot $IMAGE_DIR --modelcard tests/data/sample-model/README.md tests/data/sample-model
         skopeo copy oci:download:latest docker-daemon:myimage:latest
         docker run --rm myimage:latest ls -la /models
+        docker run --rm myimage:latest stat /models
         docker run --rm myimage:latest ls -la /models/sample-model
+        docker run --rm myimage:latest stat /models/sample-model
