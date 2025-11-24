@@ -57,11 +57,14 @@ def tar_filter_fn(input: tarfile.TarInfo) -> tarfile.TarInfo :
         tarfile.TarInfo: The modified file metadata with the following changes:
             - `uid` set to 0 (root user).
             - `gid` set to 0 (root group).
-            - `mode` set to 0o664 (read/write for root owner and root group, read-only for others).
+            - `mode` set to 0o664 (read/write for root owner and root group, read-only for others) or 775 read/execute only for directories.
     """
     input.uid = 0
     input.gid = 0
-    input.mode = 0o664
+    if input.isdir():
+        input.mode = 0o775  # rwxrwxr-x for directories
+    else:
+        input.mode = 0o664  # rw-rw-r-- for files
     return input
 
 
