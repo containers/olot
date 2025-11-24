@@ -475,4 +475,9 @@ jobs:
         PERMS=$(docker run --rm myimage:latest ls -la /models | grep "sample-model")
         PERM_STRING=$(echo "$PERMS" | awk '{print $1}')
         echo $PERM_STRING
-        
+        if [[ "$PERM_STRING" == "drwxrwxr-x" ]]; then
+          echo "Permissions for subDIRECTORY sample-model is correct"
+        else
+          echo "Permissions for subDIRECTORY sample-model is incorrect"
+          exit 1
+        fi
