@@ -438,7 +438,7 @@ jobs:
         python -c "from olot.oci.oci_image_layout import verify_ocilayout; from pathlib import Path; verify_ocilayout(Path('/tmp/embedded_oci_layout'))"
 
   e2e-when-directory:
-    name: E2E test CLI passing a directory in.
+    name: E2E test CLI passing a directory as input param
     runs-on: ubuntu-24.04
     steps:
     - name: Checkout repository
@@ -454,12 +454,6 @@ jobs:
     - name: Install Poetry
       run: |
         pipx install poetry
-    - name: Install-only specific KinD version (so it's up-to-date)
-      uses: helm/kind-action@v1
-      with:
-        version: ${{ env.KIND_VERSION }}
-        node_image: ${{ env.KIND_NODE_IMAGE }}
-        install_only: true
     - name: Install dependencies
       run: |
         make install
