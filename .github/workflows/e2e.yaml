@@ -436,3 +436,41 @@ jobs:
         python -c "from modelcar_base_image.embedded_oci_layout import embedded_oci_layout; embedded_oci_layout('/tmp/embedded_oci_layout')"
         find /tmp/embedded_oci_layout -type f -exec ls -la {} \;
         python -c "from olot.oci.oci_image_layout import verify_ocilayout; from pathlib import Path; verify_ocilayout(Path('/tmp/embedded_oci_layout'))"
+
+  e2e-when-directory:
+    name: E2E test CLI passing a directory in.
+    runs-on: ubuntu-24.04
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v5
+    - name: Install Skopeo
+      run: |
+        sudo apt-get update && sudo apt-get install skopeo
+        skopeo --version
+    - name: Set up Python
+      uses: actions/setup-python@v6
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+    - name: Install Poetry
+      run: |
+        pipx install poetry
+    - name: Install-only specific KinD version (so it's up-to-date)
+      uses: helm/kind-action@v1
+      with:
+        version: ${{ env.KIND_VERSION }}
+        node_image: ${{ env.KIND_NODE_IMAGE }}
+        install_only: true
+    - name: Install dependencies
+      run: |
+        make install
+    - name: Run tutorial alike, with a directory
+      run: | 
+        IMAGE_DIR=download
+        OCI_REGISTRY_SOURCE=quay.io/mmortari/hello-world-wait:latest
+        rm -rf $IMAGE_DIR
+        skopeo copy --multi-arch all docker://${OCI_REGISTRY_SOURCE} oci:${IMAGE_DIR}:latest
+        # NOT EFFICIENT USAGE:
+        poetry run olot $IMAGE_DIR --modelcard tests/data/sample-model/README.md tests/data/sample-model
+        skopeo copy oci:download:latest docker-daemon:myimage:latest
+        docker run --rm myimage:latest ls -la /models
+        docker run --rm myimage:latest ls -la /models/sample-model

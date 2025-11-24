@@ -70,6 +70,9 @@ def oci_layers_on_top(
     model_files = [Path(mf).resolve() for mf in model_files]
     if modelcard is not None:
         modelcard = Path(modelcard).resolve()
+    for m in model_files:
+        if m.is_dir():
+            logger.warning(f"One of the input is a whole directory and will result in non-efficient layer-ing: {m}")
 
     verify_ocilayout(ocilayout)
     if check_if_oci_layout_contains_docker_manifests(ocilayout):
