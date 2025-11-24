@@ -14,7 +14,7 @@ def oras_pull(base_image: str, dest: typing.Union[str, os.PathLike], params: typ
     blobs_dir = os.path.join(dest, "blobs", "sha256")
     for _, _, files in os.walk(blobs_dir):
         for file in files:
-            os.chmod(os.path.join(blobs_dir, file), 0o664) # TODO eventually avoid this by refactor manifest change logic
+            os.chmod(os.path.join(blobs_dir, file), 0o775) # TODO eventually avoid this by refactor manifest change logic
 
 
 
