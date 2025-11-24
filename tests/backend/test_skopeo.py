@@ -5,11 +5,11 @@ import time
 import docker # type: ignore
 from pathlib import Path
 import pytest
-from olot.backend.skopeo import is_skopeo, skopeo_pull, skopeo_push
+from olot.backend.skopeo import is_skopeo, skopeo_pull, skopeo_push, skopeo_inspect
 from olot.basics import oci_layers_on_top
 from olot.oci.oci_image_layout import verify_ocilayout
 from olot.oci.oci_image_index import read_ocilayout_root_index
-from tests.common import sample_model_path
+from tests.common import get_test_data_path, sample_model_path
 
 @pytest.mark.e2e_skopeo
 def test_is_skopeo():
@@ -171,3 +171,20 @@ def test_skopeo_with_docker_attestated_base_image(tmp_path):
     skopeo_pull("busybox", target_ocilayout)
 
     oci_layers_on_top(target_ocilayout, models, modelcard)
+
+
+@pytest.mark.e2e_skopeo
+def test_skopeo_inspect():
+    data_path = str(get_test_data_path().absolute())
+    result = skopeo_inspect("oci:"+data_path+"/ocilayout2:latest")
+    assert result
+    assert len(result) == 491
+    result = skopeo_inspect("oci:"+data_path+"/ocilayout3:latest")
+    assert result
+    assert len(result) == 491
+    result = skopeo_inspect("oci:"+data_path+"/ocilayout4:latest")
+    assert result
+    assert len(result) == 1077
+    result = skopeo_inspect("oci:"+data_path+"/ocilayout5:latest")
+    assert result
+    assert len(result) == 731

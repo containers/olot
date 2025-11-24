@@ -40,3 +40,7 @@ def pytest_addoption(parser):
         default=False,
         help="opt-in to run tests marked with e2e_oras",
     )
+
+
+def registry_addr():
+    return "localhost:5001"

@@ -1,16 +1,25 @@
 from olot.backend.oras_cp import oras_push
+from olot.backend.skopeo import skopeo_inspect, skopeo_push
 from olot.basics import write_empty_config_in_ocilayoyt
 from olot.oci.oci_common import MediaTypes
 from olot.oci.oci_image_index import Manifest, OCIImageIndex
 from olot.oci.oci_image_layout import OCIImageLayout
 from olot.oci.oci_image_manifest import ContentDescriptor, create_oci_image_manifest, empty_config
+from olot.oci.oci_utils import get_descriptor_from_manifest
 from olot.utils.files import targz_from_file, walk_files
 from olot.utils.types import compute_hash_of_str
 from tests.common import get_test_data_path, sample_model_path, file_checksums_with_compression, file_checksums_without_compression
 from olot.oci_artifact import create_blobs, create_simple_oci_artifact
+import pytest
+import logging
 
 import os
 from pathlib import Path
+
+from tests.conftest import registry_addr
+
+
+logger = logging.getLogger(__name__)
 
 
 def test_create_blobs(tmp_path):
@@ -176,3 +185,35 @@ def test_full_artifact_with_directory_structure(tmp_path: Path):
             f"File content mismatch for {filename}: original size={len(original_content)}, output size={len(output_content)}"
         assert len(original_content) == len(output_content), \
             f"File size mismatch for {filename}: original={len(original_content)}, output={len(output_content)}"
+
+
+@pytest.mark.e2e_skopeo
+def test_artifact_and_referrer_with_skopeo(tmp_path: Path):
+    ocilayout_path = tmp_path / "working1"
+    ocilayout_path.mkdir(parents=True, exist_ok=True)
+    
+    lmeh_path = get_test_data_path() / "lmeh"
+    walked_files = walk_files(lmeh_path)
+    expected_walked_files = [
+        Path("results_2025-04-30T18-24-41.082644.json"),
+        Path("samples_gsm8k_2025-04-30T18-24-41.082644.jsonl"),
+    ]
+    assert walked_files == expected_walked_files
+    create_simple_oci_artifact(lmeh_path, ocilayout_path)
+
+    ref = registry_addr() + "/myorg/myartifact:latest"
+    skopeo_push(ocilayout_path, ref, ["--dest-tls-verify=false"])
+
+    # reminder: should prefer digest based reference to Tag based reference
+    if "@" not in ref:
+        logger.warning("Should prefer to use a digest based reference, instead of Tag reference")
+    
+    manifest = skopeo_inspect("docker://"+ref, ["--tls-verify=false"])
+    subject = get_descriptor_from_manifest(manifest)
+    ocilayout_path = tmp_path / "working2"
+    ocilayout_path.mkdir(parents=True, exist_ok=True)
+    create_simple_oci_artifact(lmeh_path, ocilayout_path, subject=subject)
+    skopeo_push(ocilayout_path, registry_addr()+"/myorg/myartifact:referrer", ["--dest-tls-verify=false"])
+    # TODO At this point cannot do much more since the Distribution Registry does not support Referrers API,
+    # but Quay and other registry do; can reconsider expanding the test by using a pure OCI registry.
+    # The above already works with `oras discover ...` when persisted on Quay, for example.

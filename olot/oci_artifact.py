@@ -2,7 +2,7 @@ import datetime
 from pathlib import Path
 import os
 import json
-from typing import List
+from typing import List, Union
 
 from olot.oci.oci_config import HistoryItem, OCIManifestConfig, Rootfs, Type
 from olot.oci.oci_image_manifest import ContentDescriptor, create_oci_image_manifest, create_manifest_layers
@@ -101,7 +101,10 @@ def create_blobs(model_files: List[Path], dest_dir: Path):
     return layers
 
 
-def create_simple_oci_artifact(source_path: Path, oci_layout_path: Path):
+def create_simple_oci_artifact(source_path: Path,
+                               oci_layout_path: Path,
+                               artifact_type: Union[str, None] = None,
+                               subject: Union[ContentDescriptor, None] = None):
     """
     Create a simple OCI artifact from a source directory.
     """
@@ -160,8 +163,9 @@ def create_simple_oci_artifact(source_path: Path, oci_layout_path: Path):
                 data=None,
                 artifactType=None,
             ),
-        artifactType="application/json",  # TODO: maybe place here something specific to lmeh
-        layers=cds
+        artifactType=artifact_type,
+        layers=cds,
+        subject=subject
         )
     manifest_json = manifest.model_dump_json(indent=2, exclude_none=True)
     manifest_SHA = compute_hash_of_str(manifest_json)
