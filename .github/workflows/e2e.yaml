@@ -436,3 +436,48 @@ jobs:
         python -c "from modelcar_base_image.embedded_oci_layout import embedded_oci_layout; embedded_oci_layout('/tmp/embedded_oci_layout')"
         find /tmp/embedded_oci_layout -type f -exec ls -la {} \;
         python -c "from olot.oci.oci_image_layout import verify_ocilayout; from pathlib import Path; verify_ocilayout(Path('/tmp/embedded_oci_layout'))"
+
+  e2e-when-directory:
+    name: E2E test CLI passing a directory as input param
+    runs-on: ubuntu-24.04
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v5
+    - name: Install Skopeo
+      run: |
+        sudo apt-get update && sudo apt-get install skopeo
+        skopeo --version
+    - name: Set up Python
+      uses: actions/setup-python@v6
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+    - name: Install Poetry
+      run: |
+        pipx install poetry
+    - name: Install dependencies
+      run: |
+        make install
+    - name: Run tutorial alike, with a directory
+      run: | 
+        IMAGE_DIR=download
+        OCI_REGISTRY_SOURCE=quay.io/mmortari/hello-world-wait:latest
+        rm -rf $IMAGE_DIR
+        skopeo copy --multi-arch all docker://${OCI_REGISTRY_SOURCE} oci:${IMAGE_DIR}:latest
+        # NOT EFFICIENT USAGE:
+        poetry run olot $IMAGE_DIR --modelcard tests/data/sample-model/README.md tests/data/sample-model
+        skopeo copy oci:download:latest docker-daemon:myimage:latest
+        docker run --rm --user 1000:1000 myimage:latest ls -la /models
+        docker run --rm --user 1000:1000 myimage:latest stat /models
+        docker run --rm --user 1000:1000 myimage:latest ls -la /models/sample-model
+        docker run --rm --user 1000:1000 myimage:latest stat /models/sample-model
+        docker run --rm --user 1000:1000 myimage:latest sh -c "cd /models; ls -la; cd sample-model; ls -la"
+        # Check sample-model directory permissions in Docker container
+        PERMS=$(docker run --rm myimage:latest ls -la /models | grep "sample-model")
+        PERM_STRING=$(echo "$PERMS" | awk '{print $1}')
+        echo $PERM_STRING
+        if [[ "$PERM_STRING" == "drwxrwxr-x" ]]; then
+          echo "Permissions for subDIRECTORY sample-model is correct"
+        else
+          echo "Permissions for subDIRECTORY sample-model is incorrect"
+          exit 1
+        fi
