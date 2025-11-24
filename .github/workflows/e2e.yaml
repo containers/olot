@@ -466,11 +466,11 @@ jobs:
         # NOT EFFICIENT USAGE:
         poetry run olot $IMAGE_DIR --modelcard tests/data/sample-model/README.md tests/data/sample-model
         skopeo copy oci:download:latest docker-daemon:myimage:latest
-        docker run --rm myimage:latest ls -la /models
-        docker run --rm myimage:latest stat /models
-        docker run --rm myimage:latest ls -la /models/sample-model
-        docker run --rm myimage:latest stat /models/sample-model
-        docker run --rm myimage:latest sh -c "cd /models; ls -la; cd sample-model; ls -la"
+        docker run --rm --user 1000:1000 myimage:latest ls -la /models
+        docker run --rm --user 1000:1000 myimage:latest stat /models
+        docker run --rm --user 1000:1000 myimage:latest ls -la /models/sample-model
+        docker run --rm --user 1000:1000 myimage:latest stat /models/sample-model
+        docker run --rm --user 1000:1000 myimage:latest sh -c "cd /models; ls -la; cd sample-model; ls -la"
         # Check sample-model directory permissions in Docker container
         PERMS=$(docker run --rm myimage:latest ls -la /models | grep "sample-model")
         PERM_STRING=$(echo "$PERMS" | awk '{print $1}')
