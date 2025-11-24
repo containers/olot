@@ -470,3 +470,4 @@ jobs:
         docker run --rm myimage:latest stat /models
         docker run --rm myimage:latest ls -la /models/sample-model
         docker run --rm myimage:latest stat /models/sample-model
+        docker run --rm myimage:latest sh -c "cd /models; ls -la; cd sample-model; ls -la"
