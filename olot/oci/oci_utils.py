@@ -15,10 +15,13 @@ def get_descriptor_from_manifest(manifest: str) -> ContentDescriptor:
     size = len(manifest)
     data = json.loads(manifest)
     model: Union[OCIImageManifest, OCIImageIndex]
-    if data.get("mediaType") == MediaTypes.manifest:
+    mediaType = data.get("mediaType")
+    if mediaType == MediaTypes.manifest:
         model = OCIImageManifest.model_validate_json(manifest)
-    elif data.get("mediaType") == MediaTypes.index:
+    elif mediaType == MediaTypes.index:
         model = OCIImageIndex.model_validate_json(manifest)
+    else:
+        raise ValueError(f"Unsupported manifest type{mediaType}")
     if not model.mediaType:
         raise ValueError(f"Unexpected OCI manifest spec missing MediaType: {model}")
     result = ContentDescriptor(
