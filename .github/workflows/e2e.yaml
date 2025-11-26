@@ -464,7 +464,7 @@ jobs:
         rm -rf $IMAGE_DIR
         skopeo copy --multi-arch all docker://${OCI_REGISTRY_SOURCE} oci:${IMAGE_DIR}:latest
         # NOT EFFICIENT USAGE:
-        poetry run olot $IMAGE_DIR --modelcard tests/data/files-and-directory/README.md tests/data/files-and-directory/*
+        poetry run olot --verbose $IMAGE_DIR --modelcard tests/data/files-and-directory/README.md tests/data/files-and-directory/*
         skopeo copy oci:download:latest docker-daemon:myimage:latest
         docker run --rm --user 1000:1000 myimage:latest ls -la /models
         docker run --rm --user 1000:1000 myimage:latest stat /models
