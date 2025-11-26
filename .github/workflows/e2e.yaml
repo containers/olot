@@ -464,20 +464,21 @@ jobs:
         rm -rf $IMAGE_DIR
         skopeo copy --multi-arch all docker://${OCI_REGISTRY_SOURCE} oci:${IMAGE_DIR}:latest
         # NOT EFFICIENT USAGE:
-        poetry run olot $IMAGE_DIR --modelcard tests/data/sample-model/README.md tests/data/sample-model
+        poetry run olot $IMAGE_DIR --modelcard tests/data/files-and-directory/README.md tests/data/files-and-directory/*
         skopeo copy oci:download:latest docker-daemon:myimage:latest
         docker run --rm --user 1000:1000 myimage:latest ls -la /models
         docker run --rm --user 1000:1000 myimage:latest stat /models
-        docker run --rm --user 1000:1000 myimage:latest ls -la /models/sample-model
-        docker run --rm --user 1000:1000 myimage:latest stat /models/sample-model
-        docker run --rm --user 1000:1000 myimage:latest sh -c "cd /models; ls -la; cd sample-model; ls -la"
-        # Check sample-model directory permissions in Docker container
-        PERMS=$(docker run --rm myimage:latest ls -la /models | grep "sample-model")
+        docker run --rm --user 1000:1000 myimage:latest tree /models
+        docker run --rm --user 1000:1000 myimage:latest ls -la /models/1_Directory
+        docker run --rm --user 1000:1000 myimage:latest stat /models/1_Directory
+        docker run --rm --user 1000:1000 myimage:latest sh -c "cd /models; ls -la; cd 1_Directory; ls -la"
+        # Check 1_Directory directory permissions in Docker container
+        PERMS=$(docker run --rm myimage:latest ls -la /models | grep "1_Directory")
         PERM_STRING=$(echo "$PERMS" | awk '{print $1}')
         echo $PERM_STRING
         if [[ "$PERM_STRING" == "drwxrwxr-x" ]]; then
-          echo "Permissions for subDIRECTORY sample-model is correct"
+          echo "Permissions for subDIRECTORY 1_Directory is correct"
         else
-          echo "Permissions for subDIRECTORY sample-model is incorrect"
+          echo "Permissions for subDIRECTORY 1_Directory is incorrect"
           exit 1
         fi
