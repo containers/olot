@@ -61,6 +61,8 @@ def oci_layers_on_top(
         remove_originals: whether to remove the original content files after having added the layers, default: None.
         add_modelpack: whether to add a ModelPack manifest to the multi-arch oci-layout only if not already present, default: None.
     """
+    logger.debug("oci_layers_on_top parameters: %s", pformat(locals()))
+
     if not isinstance(ocilayout, Path):
         ocilayout = Path(ocilayout)
     if remove_originals:
