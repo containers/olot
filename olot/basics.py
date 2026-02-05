@@ -1,5 +1,4 @@
 import datetime
-from enum import Enum
 import logging
 import os
 from pathlib import Path
@@ -9,6 +8,7 @@ from typing import Dict, List, Sequence
 import typing
 
 from olot.dockerdist.convert import check_if_oci_layout_contains_docker_manifests, convert_docker_manifests_to_oci
+from olot.enums import RemoveOriginals
 from olot.modelpack.model_config import Model, ModelConfig, ModelDescriptor, ModelFS, Type
 from olot.oci.oci_config import HistoryItem, OCIManifestConfig
 
@@ -23,21 +23,6 @@ from olot.utils.types import compute_hash_of_str
 from olot.modelpack import const as modelpack_consts
 
 logger = logging.getLogger(__name__)
-
-class CustomStrEnum(str, Enum):
-    """To polyfill back to 3.9"""
-    @classmethod
-    def values(cls) -> Sequence[str]:
-        return [e.value for e in cls]
-    
-
-class RemoveOriginals(CustomStrEnum):
-    """Strategy to be applied when removing original files
-    
-    default: remove only model weights, configuration, etc.
-    all: like default, but also remove the Model CarD"""
-    DEFAULT = "default"
-    ALL = "all"
 
 
 def oci_layers_on_top(
@@ -126,6 +111,10 @@ def oci_layers_on_top(
             is_modelcard = layer_digest != new_layer.diff_id
             if is_modelcard:
                 la["io.opendatahub.modelcar.layer.type"] = "modelcard"
+            if new_layer.input_hash:
+                la["olot.layer.content.digest"] = "sha256:"+new_layer.input_hash
+            la["olot.layer.content.type"] = new_layer.input_type
+            la["olot.layer.content.inlayerpath"] = new_layer.in_layer_path
             cd = ContentDescriptor(
                 mediaType=mt,
                 digest="sha256:"+layer_digest,

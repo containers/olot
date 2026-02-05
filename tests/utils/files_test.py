@@ -5,7 +5,7 @@ import shutil
 import os
 
 import pytest
-from olot.utils.files import get_file_hash, HashingWriter, tarball_from_file, targz_from_file, walk_files
+from olot.utils.files import get_file_hash, HashingWriter, HashingFileReader, tarball_from_file, targz_from_file, walk_files
 
 from tests.common import sample_model_path, sha256_path
 
@@ -15,6 +15,22 @@ def test_get_file_hash():
     hello_path = sample_model_path() / "hello.md"
     checksum_from_disk = get_file_hash(hello_path)
     assert checksum_from_disk == "d91aa8aa7b56706b89e4a9aa27d57f45785082ba40e8a67e58ede1ed5709afd8"
+
+
+def test_HashingFileReader(tmp_path):
+    """Test HashingFileReader iterating on test_get_file_hash principles"""
+    hello_path = sample_model_path() / "hello.md"
+    checksum_from_disk = get_file_hash(hello_path)
+    assert checksum_from_disk == "d91aa8aa7b56706b89e4a9aa27d57f45785082ba40e8a67e58ede1ed5709afd8"
+
+    with open(hello_path, 'rb') as f:
+        reader = HashingFileReader(f)
+        # Read the file entirely
+        _ = reader.read()
+
+    computed_hash = reader.hash_func.hexdigest()
+    assert computed_hash == "d91aa8aa7b56706b89e4a9aa27d57f45785082ba40e8a67e58ede1ed5709afd8"
+    assert computed_hash == checksum_from_disk  # I know is redundant, but I want to cross-check principles.
 
 
 def test_Hashwriter_tar(tmp_path):
@@ -358,3 +374,56 @@ def test_walk_files_skip_lost_found(tmp_path):
         Path("normal_file.txt")
     ]
     assert result == expected
+
+
+def test_HashingFileReader_with_hash_fn(tmp_path):
+    """Test HashingFileReader computes hash while reading from a file, passing a custom hash fn"""
+    test_file = tmp_path / "test.txt"
+    test_content = b"Hello, World! This is test content."
+    test_file.write_bytes(test_content)
+
+    expected_hash = get_file_hash(test_file)
+
+    import hashlib
+    hash_func = hashlib.sha256()
+    with open(test_file, 'rb') as f:
+        reader = HashingFileReader(f, hash_func)
+        # Read the file entirely
+        content = reader.read()
+        assert content == test_content
+
+    computed_hash = hash_func.hexdigest()
+    assert computed_hash == expected_hash
+
+
+def test_tarball_from_file_input_hash(tmp_path):
+    """Test tarball_from_file() computes input file hash correctly"""
+    model_path = sample_model_path() / "model.joblib"
+    write_dest = sha256_path(tmp_path)
+    write_dest.mkdir(parents=True, exist_ok=True)
+
+    expected_input_hash = get_file_hash(model_path)
+
+    # Create tarball and check input_hash in LayerStats
+    result = tarball_from_file(model_path, write_dest)
+
+    assert result.input_hash == expected_input_hash
+    assert result.input_hash != ""  # Should not be empty for a file
+    assert result.layer_digest != result.input_hash  # Tar hash should differ from input file hash
+
+
+def test_targz_from_file_input_hash(tmp_path):
+    """Test targz_from_file() computes input file hash correctly"""
+    model_path = sample_model_path() / "model.joblib"
+    write_dest = sha256_path(tmp_path)
+    write_dest.mkdir(parents=True, exist_ok=True)
+
+    expected_input_hash = get_file_hash(model_path)
+
+    # Create tar.gz and check input_hash in LayerStats
+    result = targz_from_file(model_path, write_dest)
+
+    assert result.input_hash == expected_input_hash
+    assert result.input_hash != ""  # Should not be empty for a file
+    assert result.layer_digest != result.input_hash  # Compressed tar hash should differ from input file hash
+    assert result.diff_id != result.input_hash  # Uncompressed tar hash should differ from input file hash
