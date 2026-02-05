@@ -44,7 +44,7 @@ Here's how these annotations appear in an OCI image manifest:
 
 ```json
 {
-  "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
+  "mediaType": "application/vnd.oci.image.layer.v1.tar",
   "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
   "size": 12345,
   "annotations": {
