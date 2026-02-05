@@ -465,12 +465,15 @@ def test_add_labels_and_annotations(tmp_path: Path):
         assert mc.config
         assert mc.config.Labels
         assert mc.config.Labels["a"] == "b"
+    assert manifest0.layers[-3].annotations
     assert manifest0.layers[-3].annotations[ANNOTATION_LAYER_CONTENT_TYPE] == "file"
     assert manifest0.layers[-3].annotations[ANNOTATION_LAYER_CONTENT_INLAYERPATH] == "/models/model.joblib"
     assert manifest0.layers[-3].annotations[ANNOTATION_LAYER_CONTENT_DIGEST] == "sha256:"+checksum_from_disk0
+    assert manifest0.layers[-2].annotations
     assert manifest0.layers[-2].annotations[ANNOTATION_LAYER_CONTENT_TYPE] == "file"
     assert manifest0.layers[-2].annotations[ANNOTATION_LAYER_CONTENT_INLAYERPATH] == "/models/hello.md"
     assert manifest0.layers[-2].annotations[ANNOTATION_LAYER_CONTENT_DIGEST] == "sha256:"+checksum_from_disk1
+    assert manifest0.layers[-1].annotations
     assert manifest0.layers[-1].annotations[ANNOTATION_LAYER_CONTENT_TYPE] == "file"
     assert manifest0.layers[-1].annotations[ANNOTATION_LAYER_CONTENT_INLAYERPATH] == "/models/README.md"
     assert manifest0.layers[-1].annotations[ANNOTATION_LAYER_CONTENT_DIGEST] == "sha256:"+checksum_from_disk2
