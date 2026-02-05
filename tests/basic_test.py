@@ -7,7 +7,11 @@ from typing import Dict
 import logging
 
 from olot.basics import RemoveOriginals, crawl_ocilayout_blobs_to_extract, crawl_ocilayout_indexes, crawl_ocilayout_manifests, oci_layers_on_top, write_empty_config_in_ocilayoyt
-
+from olot.constants import (
+    ANNOTATION_LAYER_CONTENT_DIGEST,
+    ANNOTATION_LAYER_CONTENT_TYPE,
+    ANNOTATION_LAYER_CONTENT_INLAYERPATH,
+)
 from olot.oci.oci_config import OCIManifestConfig
 from olot.oci.oci_image_index import OCIImageIndex, read_ocilayout_root_index
 from olot.oci.oci_image_manifest import OCIImageManifest
@@ -461,12 +465,12 @@ def test_add_labels_and_annotations(tmp_path: Path):
         assert mc.config
         assert mc.config.Labels
         assert mc.config.Labels["a"] == "b"
-    assert manifest0.layers[-3].annotations["olot.layer.content.type"] == "file"
-    assert manifest0.layers[-3].annotations["olot.layer.content.inlayerpath"] == "/models/model.joblib"
-    assert manifest0.layers[-3].annotations["olot.layer.content.digest"] == "sha256:"+checksum_from_disk0
-    assert manifest0.layers[-2].annotations["olot.layer.content.type"] == "file"
-    assert manifest0.layers[-2].annotations["olot.layer.content.inlayerpath"] == "/models/hello.md"
-    assert manifest0.layers[-2].annotations["olot.layer.content.digest"] == "sha256:"+checksum_from_disk1
-    assert manifest0.layers[-1].annotations["olot.layer.content.type"] == "file"
-    assert manifest0.layers[-1].annotations["olot.layer.content.inlayerpath"] == "/models/README.md"
-    assert manifest0.layers[-1].annotations["olot.layer.content.digest"] == "sha256:"+checksum_from_disk2
+    assert manifest0.layers[-3].annotations[ANNOTATION_LAYER_CONTENT_TYPE] == "file"
+    assert manifest0.layers[-3].annotations[ANNOTATION_LAYER_CONTENT_INLAYERPATH] == "/models/model.joblib"
+    assert manifest0.layers[-3].annotations[ANNOTATION_LAYER_CONTENT_DIGEST] == "sha256:"+checksum_from_disk0
+    assert manifest0.layers[-2].annotations[ANNOTATION_LAYER_CONTENT_TYPE] == "file"
+    assert manifest0.layers[-2].annotations[ANNOTATION_LAYER_CONTENT_INLAYERPATH] == "/models/hello.md"
+    assert manifest0.layers[-2].annotations[ANNOTATION_LAYER_CONTENT_DIGEST] == "sha256:"+checksum_from_disk1
+    assert manifest0.layers[-1].annotations[ANNOTATION_LAYER_CONTENT_TYPE] == "file"
+    assert manifest0.layers[-1].annotations[ANNOTATION_LAYER_CONTENT_INLAYERPATH] == "/models/README.md"
+    assert manifest0.layers[-1].annotations[ANNOTATION_LAYER_CONTENT_DIGEST] == "sha256:"+checksum_from_disk2
