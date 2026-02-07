@@ -6,7 +6,7 @@ This feature adds layer annotations to track metadata about the original files p
 
 ## Layer Annotations
 
-Olot automatically adds three annotations to each layer in the OCI manifest:
+Olot automatically adds four annotations to each layer in the OCI manifest:
 
 ### `olot.layer.content.digest`
 
@@ -38,6 +38,16 @@ The full path where the content will appear in the container filesystem (e.g. de
 
 Example: `"olot.layer.content.inlayerpath": "/models/model.joblib"`
 
+### `olot.layer.content.name`
+
+The original filename (path.name) of the input file or directory.
+
+- **Type**: String (filename)
+- **Always populated**: Yes
+- **Purpose**: Provides the original file or directory name, simplifying traceability and model signing workflows (e.g., TAS/Konflux use-cases)
+
+Example: `"olot.layer.content.name": "model.joblib"`
+
 ## Example Manifest Layer
 
 Here's how these annotations appear in an OCI image manifest:
@@ -50,7 +60,8 @@ Here's how these annotations appear in an OCI image manifest:
   "annotations": {
     "olot.layer.content.digest": "sha256:d91aa8aa7b56706b89e4a9aa27d57f45785082ba40e8a67e58ede1ed5709afd8",
     "olot.layer.content.type": "file",
-    "olot.layer.content.inlayerpath": "/models/model.joblib"
+    "olot.layer.content.inlayerpath": "/models/model.joblib",
+    "olot.layer.content.name": "model.joblib"
   }
 }
 ```
@@ -73,13 +84,14 @@ This is consistent with current Olot principles that avoid writing files multipl
 
 **Modified**: `olot/basics.py`
 
-The `oci_layers_on_top()` function automatically attaches the three annotations when creating layer descriptors:
+The `oci_layers_on_top()` function automatically attaches the four annotations when creating layer descriptors:
 
 ```python
 if new_layer.input_hash:
     la[ANNOTATION_LAYER_CONTENT_DIGEST] = "sha256:"+new_layer.input_hash
 la[ANNOTATION_LAYER_CONTENT_TYPE] = new_layer.input_type
 la[ANNOTATION_LAYER_CONTENT_INLAYERPATH] = new_layer.in_layer_path
+la[ANNOTATION_LAYER_CONTENT_NAME] = new_layer.title
 ```
 
 Note that `olot.layer.content.digest` is only added if the input was a file (not a directory).
@@ -123,7 +135,7 @@ Tests for:
 End-to-end test (`test_add_labels_and_annotations`) that:
 1. Run Olot as usual, to create layers from actual model files
 2. Builds an OCI layout with annotations
-3. Verifies all three annotations appear correctly in the manifest
+3. Verifies all four annotations appear correctly in the manifest
 4. Validates that the digests match the original files
 
 Example assertions from the test:
@@ -131,6 +143,7 @@ Example assertions from the test:
 assert manifest0.layers[-3].annotations[ANNOTATION_LAYER_CONTENT_TYPE] == "file"
 assert manifest0.layers[-3].annotations[ANNOTATION_LAYER_CONTENT_INLAYERPATH] == "/models/model.joblib"
 assert manifest0.layers[-3].annotations[ANNOTATION_LAYER_CONTENT_DIGEST] == "sha256:"+checksum_from_disk0
+assert manifest0.layers[-3].annotations[ANNOTATION_LAYER_CONTENT_NAME] == "model.joblib"
 ```
 
 ## References
