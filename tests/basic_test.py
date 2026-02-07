@@ -11,6 +11,7 @@ from olot.constants import (
     ANNOTATION_LAYER_CONTENT_DIGEST,
     ANNOTATION_LAYER_CONTENT_TYPE,
     ANNOTATION_LAYER_CONTENT_INLAYERPATH,
+    ANNOTATION_LAYER_CONTENT_NAME,
 )
 from olot.oci.oci_config import OCIManifestConfig
 from olot.oci.oci_image_index import OCIImageIndex, read_ocilayout_root_index
@@ -469,11 +470,14 @@ def test_add_labels_and_annotations(tmp_path: Path):
     assert manifest0.layers[-3].annotations[ANNOTATION_LAYER_CONTENT_TYPE] == "file"
     assert manifest0.layers[-3].annotations[ANNOTATION_LAYER_CONTENT_INLAYERPATH] == "/models/model.joblib"
     assert manifest0.layers[-3].annotations[ANNOTATION_LAYER_CONTENT_DIGEST] == "sha256:"+checksum_from_disk0
+    assert manifest0.layers[-3].annotations[ANNOTATION_LAYER_CONTENT_NAME] == "model.joblib"
     assert manifest0.layers[-2].annotations
     assert manifest0.layers[-2].annotations[ANNOTATION_LAYER_CONTENT_TYPE] == "file"
     assert manifest0.layers[-2].annotations[ANNOTATION_LAYER_CONTENT_INLAYERPATH] == "/models/hello.md"
     assert manifest0.layers[-2].annotations[ANNOTATION_LAYER_CONTENT_DIGEST] == "sha256:"+checksum_from_disk1
+    assert manifest0.layers[-2].annotations[ANNOTATION_LAYER_CONTENT_NAME] == "hello.md"
     assert manifest0.layers[-1].annotations
     assert manifest0.layers[-1].annotations[ANNOTATION_LAYER_CONTENT_TYPE] == "file"
     assert manifest0.layers[-1].annotations[ANNOTATION_LAYER_CONTENT_INLAYERPATH] == "/models/README.md"
     assert manifest0.layers[-1].annotations[ANNOTATION_LAYER_CONTENT_DIGEST] == "sha256:"+checksum_from_disk2
+    assert manifest0.layers[-1].annotations[ANNOTATION_LAYER_CONTENT_NAME] == "README.md"
