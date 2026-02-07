@@ -8,6 +8,8 @@ import gzip
 import os
 from typing import List
 
+from olot.enums import LayerInputType
+
 logger = logging.getLogger(__name__)
 
 class HashingWriter:
@@ -25,9 +27,32 @@ class HashingWriter:
     def close(self):
         self.base_writer.close()
 
+
+class HashingFileReader:
+    def __init__(self, file_obj, hash_func=None):
+        self.file_obj = file_obj
+        self.hash_func = hash_func or hashlib.sha256()
+
+    def read(self, size=-1):
+        data = self.file_obj.read(size)
+        if data:
+            self.hash_func.update(data)
+        return data
+
+    def seek(self, offset, whence=0):
+        return self.file_obj.seek(offset, whence)
+
+    def tell(self):
+        return self.file_obj.tell()
+
+    def close(self):
+        self.file_obj.close()
+
+
 class MIMETypes:
     mlmodel = "application/x-mlmodel"
     octet_stream = "application/octet-stream"
+
 
 def get_file_hash(path) -> str:
     h = hashlib.sha256()
@@ -41,7 +66,10 @@ def get_file_hash(path) -> str:
 class LayerStats:
     layer_digest: str
     diff_id: str # will be same as layer_digest if only tar, not targz
-    title: str
+    title: str  # this is the file name (or directory name)
+    input_hash: str = ""  # SHA256 of the original input file (empty for directories)
+    input_type: LayerInputType = LayerInputType.DIRECTORY  # consistent to above default
+    in_layer_path: str = "" # the full path of the input file as it will appear in container (arcname of the tar/targz)
 
 
 def tar_filter_fn(input: tarfile.TarInfo) -> tarfile.TarInfo :
@@ -93,14 +121,26 @@ def tarball_from_file(file_path: Path, dest: Path, prefix: str = "/models/") -> 
     os.makedirs(dest, exist_ok=True)
     temp_dest = dest / "temp"
 
+    arcname = prefix+file_path.name
     try:
+        input_hash = ""
+        input_type = LayerInputType.DIRECTORY
         with open(temp_dest, "wb") as temp_file:
             writer = HashingWriter(temp_file)
             with tarfile.open(fileobj=writer, mode="w") as tar: # type: ignore[call-overload]
-                tar.add(file_path, arcname=prefix+file_path.name, filter=tar_filter_fn)
+                if file_path.is_file():
+                    with open(file_path, 'rb') as f:
+                        hashing_reader = HashingFileReader(f)
+                        tarinfo = tar.gettarinfo(str(file_path), arcname=arcname)
+                        tarinfo = tar_filter_fn(tarinfo)
+                        tar.addfile(tarinfo, hashing_reader)
+                    input_hash = hashing_reader.hash_func.hexdigest()
+                    input_type = LayerInputType.FILE
+                else:
+                    tar.add(file_path, arcname=arcname, filter=tar_filter_fn)
         checksum = writer.hash_func.hexdigest()
         os.rename(temp_dest, dest / checksum)
-        return LayerStats(checksum, checksum, file_path.name)
+        return LayerStats(checksum, checksum, file_path.name, input_hash, input_type, arcname)
     except tarfile.TarError as e:
         raise tarfile.TarError(f"Error creating tarball: {e}") from e
     except OSError as e:
@@ -136,17 +176,29 @@ def targz_from_file(file_path: Path, dest: Path, prefix: str = "/models/") -> La
     os.makedirs(dest, exist_ok=True)
     temp_dest = dest / "temp"
 
+    arcname = prefix+file_path.name
     try:
+        input_hash = ""
+        input_type = LayerInputType.DIRECTORY
         with open(temp_dest, "wb") as temp_file:
             writer = HashingWriter(temp_file)
             with gzip.GzipFile(fileobj=writer, mode="wb", mtime=0, compresslevel=6) as gz: # type: ignore[call-overload]
                 inner_writer = HashingWriter(gz)
                 with tarfile.open(fileobj=inner_writer, mode="w") as tar: # type: ignore[call-overload]
-                    tar.add(file_path, arcname=prefix+file_path.name, filter=tar_filter_fn)
+                    if file_path.is_file():
+                        with open(file_path, 'rb') as f:
+                            hashing_reader = HashingFileReader(f)
+                            tarinfo = tar.gettarinfo(str(file_path), arcname=arcname)
+                            tarinfo = tar_filter_fn(tarinfo)
+                            tar.addfile(tarinfo, hashing_reader)
+                        input_hash = hashing_reader.hash_func.hexdigest()
+                        input_type = LayerInputType.FILE
+                    else:
+                        tar.add(file_path, arcname=arcname, filter=tar_filter_fn)
         precompress_checksum = inner_writer.hash_func.hexdigest()
         postcompress_checksum = writer.hash_func.hexdigest()
         os.rename(temp_dest, dest / postcompress_checksum)
-        return LayerStats(postcompress_checksum, precompress_checksum, file_path.name)
+        return LayerStats(postcompress_checksum, precompress_checksum, file_path.name, input_hash, input_type, arcname)
     except tarfile.TarError as e:
         raise tarfile.TarError(f"Error creating tarball: {e}") from e
     except OSError as e:
