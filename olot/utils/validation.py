@@ -17,6 +17,19 @@ _tag_re = re.compile(r'^[a-zA-Z0-9_][a-zA-Z0-9._-]{0,127}$')
 _digest_re = re.compile(r'^[a-z0-9]+(?:[+._-][a-z0-9]+)*:[a-zA-Z0-9=_-]+$')
 
 def is_valid_registry_host_port(registry_host: str) -> bool:
+    """Validate a registry host with optional port.
+
+    Intended to validate a registry, for example as "quay.io" or "quay.my.svc.cluster.local:5000" or "localhost:5000".
+    Supports IPv4, IPv6 (plain or bracketed), and hostnames, with optional port numbers.
+    Port must be in range 1-65535.
+    Hostnames follow RFC 1035 (max 255 chars, labels max 63 chars).
+
+    Args:
+        registry_host: Host string (e.g., "localhost:5000", "[::1]:8080", "registry.io")
+
+    Returns:
+        True if valid, False otherwise
+    """
     host = registry_host
 
     if registry_host.startswith("["):  # IPv6 bracket notation: [ipv6] or [ipv6]:port
