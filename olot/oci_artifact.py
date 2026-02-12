@@ -4,6 +4,7 @@ import os
 import json
 from typing import List, Union
 
+from olot.constants import ANNOTATION_LAYER_CONTENT_NAME
 from olot.oci.oci_config import HistoryItem, OCIManifestConfig, Rootfs, Type
 from olot.oci.oci_image_manifest import ContentDescriptor, create_oci_image_manifest, create_manifest_layers
 from olot.oci.oci_image_layout import ImageLayoutVersion, OCIImageLayout, create_ocilayout
@@ -133,7 +134,7 @@ def create_simple_oci_artifact(source_path: Path,
         size = layer_stat.st_size
         ctime = layer_stat.st_ctime
         title = prefix + e.name if prefix != "/" else e.name
-        la = {"olot.title": title}  # cannot use org.opencontainers.image.title to avoid oras not untarring the blob :(
+        la = {ANNOTATION_LAYER_CONTENT_NAME: title}  # cannot use org.opencontainers.image.title to avoid oras not untarring the blob :(
         cd = ContentDescriptor(
             mediaType=MediaTypes.layer_gzip,
             digest="sha256:"+layer_digest,
