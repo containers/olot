@@ -19,9 +19,7 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v6
     - name: Install Skopeo
-      run: |
-        sudo apt-get update && sudo apt-get install skopeo
-        skopeo --version
+      uses: ./.github/actions/install-skopeo
     - name: Set up Python
       uses: actions/setup-python@v6
       with:
@@ -130,9 +128,7 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v6
     - name: Install Skopeo
-      run: |
-        sudo apt-get update && sudo apt-get install skopeo
-        skopeo --version
+      uses: ./.github/actions/install-skopeo
     - name: Set up Python
       uses: actions/setup-python@v6
       with:
@@ -231,9 +227,7 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v6
     - name: Install Skopeo
-      run: |
-        sudo apt-get update && sudo apt-get install skopeo
-        skopeo --version
+      uses: ./.github/actions/install-skopeo
     - name: Set up Python
       uses: actions/setup-python@v6
       with:
@@ -310,9 +304,7 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v6
     - name: Install Skopeo
-      run: |
-        sudo apt-get update && sudo apt-get install skopeo
-        skopeo --version
+      uses: ./.github/actions/install-skopeo
     - name: Install oras
       uses: oras-project/setup-oras@v1
     - run: oras version
@@ -444,9 +436,7 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v6
     - name: Install Skopeo
-      run: |
-        sudo apt-get update && sudo apt-get install skopeo
-        skopeo --version
+      uses: ./.github/actions/install-skopeo
     - name: Set up Python
       uses: actions/setup-python@v6
       with:

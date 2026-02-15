@@ -1,0 +1,15 @@
+name: Install Skopeo
+description: Install Skopeo using Homebrew (from ubuntu apt-get is stuck at old 1.13.3+ds1-2ubuntu0.24.04.3)
+runs:
+  using: composite
+  steps:
+    - name: Install Skopeo using Homebrew (from ubuntu apt-get is stuck at old 1.13.3+ds1-2ubuntu0.24.04.3)
+      shell: bash
+      run: |
+        /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+        eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv bash)"
+        brew install skopeo
+        echo "/home/linuxbrew/.linuxbrew/bin" >> "$GITHUB_PATH"
+    - name: Display Skopeo version
+      shell: bash
+      run: skopeo --version
