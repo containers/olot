@@ -14,14 +14,12 @@ env:
 jobs:
   e2e-skopeo:
     name: E2E using Skopeo
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     steps:
     - name: Checkout repository
       uses: actions/checkout@v6
     - name: Install Skopeo
-      run: |
-        sudo apt-get update && sudo apt-get install skopeo
-        skopeo --version
+      uses: ./.github/actions/install-skopeo
     - name: Set up Python
       uses: actions/setup-python@v6
       with:
@@ -125,14 +123,12 @@ jobs:
     # This test is to ensure that the add-modelpack flag is working as expected.
     # - add a ModelPack manifest to the multi-archoci-layout, and then load the image in KinD.
     # - check again that applying an Isvc using Modelcar is unaffected by testing that the Isvc is working as expected.
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     steps:
     - name: Checkout repository
       uses: actions/checkout@v6
     - name: Install Skopeo
-      run: |
-        sudo apt-get update && sudo apt-get install skopeo
-        skopeo --version
+      uses: ./.github/actions/install-skopeo
     - name: Set up Python
       uses: actions/setup-python@v6
       with:
@@ -197,7 +193,7 @@ jobs:
 
   e2e-oras:
     name: E2E using Oras CP
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     steps:
     - name: Checkout repository
       uses: actions/checkout@v6
@@ -226,14 +222,12 @@ jobs:
 
   e2e-remove-originals-cli:
     name: E2E test remove-originals scenario from CLI
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     steps:
     - name: Checkout repository
       uses: actions/checkout@v6
     - name: Install Skopeo
-      run: |
-        sudo apt-get update && sudo apt-get install skopeo
-        skopeo --version
+      uses: ./.github/actions/install-skopeo
     - name: Set up Python
       uses: actions/setup-python@v6
       with:
@@ -305,14 +299,12 @@ jobs:
 
   e2e-dockerdistribution:
     name: E2E using ORAS as in Konflux build definitions and Docker Distribution format for base-image
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     steps:
     - name: Checkout repository
       uses: actions/checkout@v6
     - name: Install Skopeo
-      run: |
-        sudo apt-get update && sudo apt-get install skopeo
-        skopeo --version
+      uses: ./.github/actions/install-skopeo
     - name: Install oras
       uses: oras-project/setup-oras@v1
     - run: oras version
@@ -416,7 +408,7 @@ jobs:
 
   e2e-check-embedded-oci-layout:
     name: E2E test embedded oci-layout via Olot extra
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     steps:
     - name: Checkout repository
       uses: actions/checkout@v6
@@ -439,14 +431,12 @@ jobs:
 
   e2e-when-directory:
     name: E2E test CLI passing a directory as input param
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     steps:
     - name: Checkout repository
       uses: actions/checkout@v6
     - name: Install Skopeo
-      run: |
-        sudo apt-get update && sudo apt-get install skopeo
-        skopeo --version
+      uses: ./.github/actions/install-skopeo
     - name: Set up Python
       uses: actions/setup-python@v6
       with:

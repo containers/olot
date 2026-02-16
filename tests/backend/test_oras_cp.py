@@ -52,14 +52,9 @@ def test_oras_scenario(tmp_path):
     # show what has been copied in Container Registry
     subprocess.run(["skopeo","list-tags","--tls-verify=false","docker://localhost:5001/nstestorg/modelcar"], check=True)
 
-    # copy from Container Registry to Docker daemon for local running the modelcar as-is
-    result = subprocess.run("skopeo inspect --tls-verify=false --raw docker://localhost:5001/nstestorg/modelcar | jq -r '.manifests[] | select(.platform.architecture == \"amd64\") | .digest'", shell=True, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    assert result.returncode == 0
-    digest = result.stdout.strip()
-    print(digest)
-    # use by convention the linux/amd64
-    subprocess.run(["skopeo", "copy", "--src-tls-verify=false", f"docker://localhost:5001/nstestorg/modelcar@{digest}", "docker-daemon:localhost:5001/nstestorg/modelcar:latest"], check=True)
+    # pull from Container Registry using Docker client for local running the modelcar as-is
     client = docker.from_env()
+    client.images.pull("localhost:5001/nstestorg/modelcar", tag="latest")
     container = client.containers.run("localhost:5001/nstestorg/modelcar", detach=True, remove=True)
     print(container.logs())
     _, stat = container.get_archive('/models/model.joblib')
@@ -107,14 +102,9 @@ def test_oras_scenario_modelcard(tmp_path):
     # show what has been copied in Container Registry
     subprocess.run(["skopeo","list-tags","--tls-verify=false","docker://localhost:5001/nstestorg/modelcar"], check=True)
 
-    # copy from Container Registry to Docker daemon for local running the modelcar as-is
-    result = subprocess.run("skopeo inspect --tls-verify=false --raw docker://localhost:5001/nstestorg/modelcar | jq -r '.manifests[] | select(.platform.architecture == \"amd64\") | .digest'", shell=True, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    assert result.returncode == 0
-    digest = result.stdout.strip()
-    print(digest)
-    # use by convention the linux/amd64
-    subprocess.run(["skopeo", "copy", "--src-tls-verify=false", f"docker://localhost:5001/nstestorg/modelcar@{digest}", "docker-daemon:localhost:5001/nstestorg/modelcar:latest"], check=True)
+    # pull from Container Registry using Docker client for local running the modelcar as-is
     client = docker.from_env()
+    client.images.pull("localhost:5001/nstestorg/modelcar", tag="latest")
     container = client.containers.run("localhost:5001/nstestorg/modelcar", detach=True, remove=True)
     print(container.logs())
     _, stat = container.get_archive('/models/model.joblib')
