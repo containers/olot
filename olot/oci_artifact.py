@@ -105,7 +105,8 @@ def create_blobs(model_files: List[Path], dest_dir: Path):
 def create_simple_oci_artifact(source_path: Path,
                                oci_layout_path: Path,
                                artifact_type: Union[str, None] = None,
-                               subject: Union[ContentDescriptor, None] = None):
+                               subject: Union[ContentDescriptor, None] = None,
+                               annotations: Union[dict[str, str], None] = None):
     """
     Create a simple OCI artifact from a source directory.
     """
@@ -166,7 +167,8 @@ def create_simple_oci_artifact(source_path: Path,
             ),
         artifactType=artifact_type,
         layers=cds,
-        subject=subject
+        subject=subject,
+        annotations=annotations
         )
     manifest_json = manifest.model_dump_json(indent=2, exclude_none=True)
     manifest_SHA = compute_hash_of_str(manifest_json)

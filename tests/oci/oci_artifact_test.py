@@ -4,7 +4,7 @@ from olot.basics import write_empty_config_in_ocilayoyt
 from olot.oci.oci_common import MediaTypes
 from olot.oci.oci_image_index import Manifest, OCIImageIndex
 from olot.oci.oci_image_layout import OCIImageLayout
-from olot.oci.oci_image_manifest import ContentDescriptor, create_oci_image_manifest, empty_config
+from olot.oci.oci_image_manifest import ContentDescriptor, OCIImageManifest, create_oci_image_manifest, empty_config
 from olot.oci.oci_utils import get_descriptor_from_manifest
 from olot.utils.files import targz_from_file, walk_files
 from olot.utils.types import compute_hash_of_str
@@ -147,14 +147,23 @@ def test_full_artifact_with_directory_structure(tmp_path: Path):
         Path("some.log"),
     ]
     assert walked_files == expected_walked_files
-    create_simple_oci_artifact(lmeh_path, ocilayout_path)
+    test_annotations = {"org.opencontainers.image.description": "test artifact", "io.opendatahub.author": "olot"}
+    create_simple_oci_artifact(lmeh_path, ocilayout_path, annotations=test_annotations)
+
+    # verify annotations are present in the image manifest
+    blobs_path = ocilayout_path / "blobs" / "sha256"
+    index = OCIImageIndex.model_validate_json((ocilayout_path / "index.json").read_text())
+    manifest_hash = index.manifests[0].digest.removeprefix("sha256:")
+    manifest = OCIImageManifest.model_validate_json((blobs_path / manifest_hash).read_text())
+    assert manifest.annotations is not None
+    for k, v in test_annotations.items():
+        assert manifest.annotations[k] == v
 
     # now let's use oras-copy to transfer from oci-layout to another oci-layout (instead of a OCI registry)
     oras_push(ocilayout_path, str(tmp_path / "output:latest"), ["--to-oci-layout"])
     print(tmp_path)
 
     # iterate the blobs so to include manifest and config in addition to the layers
-    blobs_path = ocilayout_path / "blobs" / "sha256"
     output_blobs_path = tmp_path / "output" / "blobs" / "sha256"
     assert output_blobs_path.exists(), f"Output blobs directory {output_blobs_path} does not exist"
     original_blob_files = set()
