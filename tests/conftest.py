@@ -11,6 +11,9 @@ def pytest_collection_modifyitems(config, items):
         skip_e2e_oras = pytest.mark.skip(
             reason="this is an end-to-end test, requires explicit opt-in --e2e-oras option to run."
         )
+        skip_e2e_oras_py = pytest.mark.skip(
+            reason="this is an end-to-end test, requires explicit opt-in --e2e-oras-py option to run."
+        )
         skip_not_e2e = pytest.mark.skip(
             reason="skipping non-e2e tests; opt-out of --e2e -like options to run."
         )
@@ -22,8 +25,12 @@ def pytest_collection_modifyitems(config, items):
             if not config.getoption("--e2e-oras"):
                 item.add_marker(skip_e2e_oras)
             continue
+        elif "e2e_oras_py" in item.keywords:
+            if not config.getoption("--e2e-oras-py"):
+                item.add_marker(skip_e2e_oras_py)
+            continue
 
-        if config.getoption("--e2e-skopeo") or config.getoption("--e2e-oras"):
+        if config.getoption("--e2e-skopeo") or config.getoption("--e2e-oras") or config.getoption("--e2e-oras-py"):
             item.add_marker(skip_not_e2e)
 
 
@@ -39,6 +46,12 @@ def pytest_addoption(parser):
         action="store_true",
         default=False,
         help="opt-in to run tests marked with e2e_oras",
+    )
+    parser.addoption(
+        "--e2e-oras-py",
+        action="store_true",
+        default=False,
+        help="opt-in to run tests marked with e2e_oras_py",
     )
 
 
