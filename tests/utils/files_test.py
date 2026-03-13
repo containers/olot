@@ -1,5 +1,7 @@
 from pathlib import Path
+import subprocess
 import tarfile
+import time
 import gzip
 import shutil
 import os
@@ -7,7 +9,7 @@ import os
 import pytest
 from olot.utils.files import get_file_hash, HashingWriter, HashingFileReader, tarball_from_file, targz_from_file, walk_files
 
-from tests.common import sample_model_path, sha256_path
+from tests.common import get_test_data_path, sample_model_path, sha256_path
 
 def test_get_file_hash():
     """As get_file_hash() function is used in other test, making sure it is generating the expected digest for known data
@@ -427,3 +429,75 @@ def test_targz_from_file_input_hash(tmp_path):
     assert result.input_hash != ""  # Should not be empty for a file
     assert result.layer_digest != result.input_hash  # Compressed tar hash should differ from input file hash
     assert result.diff_id != result.input_hash  # Uncompressed tar hash should differ from input file hash
+
+
+@pytest.mark.e2e_oras
+def test_tarball_from_file_oras_pull_nondeterministic(tmp_path):
+    """Demonstrate that tarball_from_file() produces different digests for the same content
+    when the source file has different mtime (as happens with repeated `oras pull`),
+    and that normalizing mtime with `touch -t` produces the same digest.
+    """
+    ociartifact1 = get_test_data_path() / "ociartifact1"
+
+    # First pull
+    pull1_dir = tmp_path / "pull1"
+    pull1_dir.mkdir()
+    subprocess.run(
+        ["oras", "pull", "--oci-layout", f"{ociartifact1}:latest", "--output", str(pull1_dir)],
+        check=True,
+    )
+    file1 = pull1_dir / "HELLO.md"
+    assert file1.exists()
+    write_dest1 = sha256_path(tmp_path / "out1")
+    write_dest1.mkdir(parents=True, exist_ok=True)
+    tbf1 = tarball_from_file(file1, write_dest1)
+    digest1 = tbf1.layer_digest
+
+    # Ensure filesystem mtime granularity difference
+    time.sleep(1)
+
+    # Second pull
+    pull2_dir = tmp_path / "pull2"
+    pull2_dir.mkdir()
+    subprocess.run(
+        ["oras", "pull", "--oci-layout", f"{ociartifact1}:latest", "--output", str(pull2_dir)],
+        check=True,
+    )
+    file2 = pull2_dir / "HELLO.md"
+    assert file2.exists()
+    write_dest2 = sha256_path(tmp_path / "out2")
+    write_dest2.mkdir(parents=True, exist_ok=True)
+    tbf2 = tarball_from_file(file2, write_dest2)
+    digest2 = tbf2.layer_digest
+
+    # Same file content, but different mtime from oras pull -> different tar digest
+    assert digest1 != digest2, "Expected different digests due to different mtime from oras pull"
+
+    # Extract org.opencontainers.image.created from manifest and convert to touch -t format (YYYYMMDDhhmm.ss)
+    # oras manifest fetch --oci-layout <path>:latest | jq -r '.annotations["org.opencontainers.image.created"]' | tr -d 'TZ:-' | sed 's/\(..\)$/.\1/'
+    cmd = (
+        f"oras manifest fetch --oci-layout {ociartifact1}:latest"
+        r""" | jq -r '.annotations["org.opencontainers.image.created"]'"""
+        r" | tr -d 'TZ:-'"
+        r" | sed 's/\(..\)$/.\1/'"
+    )
+    result = subprocess.run(cmd, shell=True, check=True, capture_output=True, text=True)
+    fixed_timestamp = result.stdout.strip() or "202601011200.00"
+
+    # Now normalize mtime on both files to the same fixed timestamp
+    subprocess.run(["touch", "-t", fixed_timestamp, str(file1)], check=True)
+    subprocess.run(["touch", "-t", fixed_timestamp, str(file2)], check=True)
+
+    # Re-create tarballs with normalized mtime
+    write_dest3 = sha256_path(tmp_path / "out3")
+    write_dest3.mkdir(parents=True, exist_ok=True)
+    tbf3 = tarball_from_file(file1, write_dest3)
+    digest3 = tbf3.layer_digest
+
+    write_dest4 = sha256_path(tmp_path / "out4")
+    write_dest4.mkdir(parents=True, exist_ok=True)
+    tbf4 = tarball_from_file(file2, write_dest4)
+    digest4 = tbf4.layer_digest
+
+    # Same content + same mtime -> same tar digest
+    assert digest3 == digest4, "Expected same digests when mtime is normalized"
