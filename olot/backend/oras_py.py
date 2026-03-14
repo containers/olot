@@ -1,14 +1,11 @@
+import importlib.util
 import os
 import typing
 
 
 def is_oras_py() -> bool:
     """Check if the oras Python library is available."""
-    try:
-        import oras  # noqa: F401
-        return True
-    except ImportError:
-        return False
+    return importlib.util.find_spec("oras") is not None
 
 
 def _extract_hostname(reference: str) -> str:
