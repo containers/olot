@@ -2,8 +2,10 @@
 
 `olot` is a python-based tool to append layers (files) onto an OCI-compatible image.
 It is meant to be used in conjunction with command-line based tools to fetch and upload these images. Tools such as [skopeo](https://github.com/containers/skopeo) or [oras](https://github.com/oras-project/oras).
+But importantly, it also supports natively the [oras Python library](https://github.com/oras-project/oras-py) as a pure-Python backend (no external Skopeo/CLI tools required).
 It leverages standard oci-layout format from the [OCI Image Layout Specification](https://github.com/opencontainers/image-spec/blob/main/image-layout.md).
-It can be used either as a CLI tool, or via standard python interface. The package is published to [pypi](https://pypi.org/p/olot).
+It can be used either as a CLI tool, or via standard python interface.
+The package is published to [pypi](https://pypi.org/p/olot).
 
 ## Usage
 
@@ -103,4 +105,31 @@ oci_layers_on_top(model_dir, model_files)
 
 # Push the model
 skopeo_push(model_dir, oci_registry_destination)
+```
+
+Or using oras-py (no external Tools like Skopeo needed):
+
+```python
+from olot.basics import oci_layers_on_top
+from olot.backend.oras_py import oras_py_pull, oras_py_push
+
+model_dir = 'download'
+oci_registry_source='quay.io/mmortari/hello-world-wait:latest'
+oci_registry_destination='quay.io/mmortari/demo20241208:latest'
+
+model_files = [
+    'tests/data/sample-model/model.joblib',
+    'tests/data/sample-model/README.md',
+]
+
+# pip install olot[oras-py]
+
+# Download the model (no external Skopeo/CLI tools needed)
+oras_py_pull(oci_registry_source, model_dir)
+
+# Add the layers
+oci_layers_on_top(model_dir, model_files)
+
+# Push the model (no external Skopeo/CLI tools needed)
+oras_py_push(model_dir, oci_registry_destination)
 ```

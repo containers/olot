@@ -27,6 +27,10 @@ test-e2e-skopeo: deploy-kind-cluster deploy-local-registry
 test-e2e-oras: deploy-kind-cluster deploy-local-registry
 	poetry run pytest --e2e-oras -s -x -rA
 
+.PHONY: test-e2e-oras-py
+test-e2e-oras-py: deploy-kind-cluster deploy-local-registry
+	poetry run pytest --e2e-oras-py -s -x -rA
+
 .PHONY: lint
 lint: install
 	poetry run ruff check --fix
