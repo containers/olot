@@ -1,4 +1,5 @@
 import os
+import tarfile
 from pathlib import Path
 from olot.utils.files import get_file_hash
 import pytest
@@ -481,3 +482,107 @@ def test_add_labels_and_annotations(tmp_path: Path):
     assert manifest0.layers[-1].annotations[ANNOTATION_LAYER_CONTENT_INLAYERPATH] == "/models/README.md"
     assert manifest0.layers[-1].annotations[ANNOTATION_LAYER_CONTENT_DIGEST] == "sha256:"+checksum_from_disk2
     assert manifest0.layers[-1].annotations[ANNOTATION_LAYER_CONTENT_NAME] == "README.md"
+
+
+
+@pytest.mark.parametrize("use_root_dir", [True, False], ids=["with_root_dir", "without_root_dir"])
+def test_oci_layers_on_top_nested_files(tmp_path: Path, use_root_dir):
+    """Verify that nested model files get correct paths in OCI layers.
+
+    With root_dir: each file gets an archive path preserving its subdirectory
+    structure (e.g. models/quantized/int8/model.onnx).
+
+    Without root_dir: all files are flattened to models/<filename>, causing
+    collisions when files in different subdirectories share the same name.
+    """
+    test_ocilayout5 = get_test_data_path() / "ocilayout5"
+    target_ocilayout = tmp_path / "myocilayout"
+    shutil.copytree(test_ocilayout5, target_ocilayout)
+
+    # Create a model dir with nested subdirectories and duplicate filenames
+    model_dir = tmp_path / "my-model"
+    model_dir.mkdir()
+    (model_dir / "config.json").write_text('{"top": true}')
+    (model_dir / "model.onnx").write_bytes(os.urandom(64))
+    onnx_dir = model_dir / "onnx"
+    onnx_dir.mkdir()
+    (onnx_dir / "model.onnx").write_bytes(os.urandom(128))
+    (onnx_dir / "config.json").write_text('{"onnx": true}')
+    int8_dir = model_dir / "quantized" / "int8"
+    int8_dir.mkdir(parents=True)
+    (int8_dir / "model.onnx").write_bytes(os.urandom(96))
+
+    models = sorted(model_dir.rglob("*"), key=lambda p: str(p))
+    models = [m for m in models if m.is_file()]
+
+    if use_root_dir:
+        oci_layers_on_top(target_ocilayout, models, root_dir=model_dir)
+    else:
+        oci_layers_on_top(target_ocilayout, models)
+
+    # Extract archive paths from every new layer
+    ocilayout_root_index = read_ocilayout_root_index(target_ocilayout)
+    ocilayout_indexes: Dict[str, OCIImageIndex] = crawl_ocilayout_indexes(target_ocilayout, ocilayout_root_index)
+    ocilayout_manifests: Dict[str, OCIImageManifest] = crawl_ocilayout_manifests(target_ocilayout, ocilayout_indexes, ocilayout_root_index)
+    manifest0: OCIImageManifest = next(iter(ocilayout_manifests.values()))
+    new_layers = manifest0.layers[1:]  # skip the 1 original base layer
+
+    # Check annotations on each layer
+    in_layer_paths = sorted(
+        layer.annotations[ANNOTATION_LAYER_CONTENT_INLAYERPATH]
+        for layer in new_layers
+        if layer.annotations is not None
+    )
+    assert len(in_layer_paths) == len(new_layers)
+    # Check actual tar contents
+    all_archive_paths: list[str] = []
+    for layer in new_layers:
+        digest = layer.digest.removeprefix("sha256:")
+        blob = target_ocilayout / "blobs" / "sha256" / digest
+        with tarfile.open(str(blob), "r") as tar:
+            all_archive_paths.extend(m.name for m in tar.getmembers() if not m.isdir())
+
+    if use_root_dir:
+        expected = [
+            "models/config.json",
+            "models/model.onnx",
+            "models/onnx/config.json",
+            "models/onnx/model.onnx",
+            "models/quantized/int8/model.onnx",
+        ]
+    else:
+        # Without root_dir, everything is flattened to models/<filename>.
+        # Duplicate filenames produce separate layers with the same archive path.
+        expected = [
+            "models/config.json",
+            "models/config.json",
+            "models/model.onnx",
+            "models/model.onnx",
+            "models/model.onnx",
+        ]
+    assert in_layer_paths == ["/" + p for p in expected]
+    assert sorted(all_archive_paths) == expected
+
+
+def test_oci_layers_on_top_root_dir_validation(tmp_path: Path):
+    """Verify that root_dir raises ValueError if a file is not under it.
+    """
+    test_ocilayout5 = get_test_data_path() / "ocilayout5"
+    target_ocilayout = tmp_path / "myocilayout"
+    shutil.copytree(test_ocilayout5, target_ocilayout)
+
+    model_dir = tmp_path / "my-model"
+    model_dir.mkdir()
+    (model_dir / "model.onnx").write_bytes(os.urandom(64))
+
+    other_dir = tmp_path / "other"
+    other_dir.mkdir()
+    (other_dir / "stray.bin").write_bytes(os.urandom(64))
+
+    models = [
+        model_dir / "model.onnx",
+        other_dir / "stray.bin",  # not under model_dir
+    ]
+
+    with pytest.raises(ValueError, match="is not under root_dir"):
+        oci_layers_on_top(target_ocilayout, models, root_dir=model_dir)
