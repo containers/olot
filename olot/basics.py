@@ -38,6 +38,7 @@ def oci_layers_on_top(
         *,
         labels: typing.Union[dict[str, str], None] = None,
         annotations: typing.Union[dict[str, str], None] = None,
+        root_dir: typing.Union[str, os.PathLike, None] = None,
         remove_originals: typing.Union[RemoveOriginals, None] = None,
         add_modelpack: typing.Union[bool, None] = None):
     """
@@ -49,6 +50,7 @@ def oci_layers_on_top(
         modelcard: PathLike of the README.md of the ModelCarD, will be added as the last layer with compression and annotations. If indicated, it shouldn't be part of model_files.
         labels: labels to be added to the OCI Image Config.
         annotations: annotations to be added to the OCI Image Manifest.
+        root_dir: root directory of the model files. When provided, the relative path of each file from root_dir is used to preserve subdirectory structure in layer arcnames (e.g. a file at root_dir/onnx/model.onnx gets arcname /models/onnx/model.onnx). When None (default), existing flat behavior is preserved.
         remove_originals: whether to remove the original content files after having added the layers, default: None.
         add_modelpack: whether to add a ModelPack manifest to the multi-arch oci-layout only if not already present, default: None.
     """
@@ -67,6 +69,14 @@ def oci_layers_on_top(
         model = Path(model)
         if model.is_dir():
             logger.warning(f"One of the input is a whole directory and will result in non-efficient layer-ing: {model}")
+
+    root_dir_resolved = Path(root_dir).resolve() if root_dir is not None else None
+    if root_dir_resolved is not None:
+        for model in model_files:
+            try:
+                Path(model).relative_to(root_dir_resolved)
+            except ValueError:
+                raise ValueError(f"model file '{model}' is not under root_dir '{root_dir_resolved}'") from None
 
     verify_ocilayout(ocilayout)
     if check_if_oci_layout_contains_docker_manifests(ocilayout):
@@ -88,7 +98,16 @@ def oci_layers_on_top(
     sha256_path = ocilayout / "blobs" / "sha256"
     for model in model_files:
         model = Path(model)
-        new_layer = tarball_from_file(model, sha256_path)
+        if root_dir_resolved is not None:
+            rel = model.relative_to(root_dir_resolved)
+            parent = str(rel.parent)
+            if parent == ".":
+                file_prefix = "/models/"
+            else:
+                file_prefix = "/models/" + parent + "/"
+            new_layer = tarball_from_file(model, sha256_path, prefix=file_prefix)
+        else:
+            new_layer = tarball_from_file(model, sha256_path)
         new_layers[new_layer.layer_digest] = new_layer
         if remove_originals:
             handle_remove(model)
