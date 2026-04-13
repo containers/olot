@@ -198,7 +198,7 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v6
     - name: Install oras
-      uses: oras-project/setup-oras@v1
+      uses: oras-project/setup-oras@v2
     - run: oras version
     - name: Set up Python
       uses: actions/setup-python@v6
@@ -409,7 +409,7 @@ jobs:
     - name: Install Skopeo
       uses: ./.github/actions/install-skopeo
     - name: Install oras
-      uses: oras-project/setup-oras@v1
+      uses: oras-project/setup-oras@v2
     - run: oras version
     - name: Set up Python
       uses: actions/setup-python@v6
