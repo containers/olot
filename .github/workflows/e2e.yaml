@@ -24,9 +24,8 @@ jobs:
       uses: actions/setup-python@v6
       with:
         python-version: ${{ env.PYTHON_VERSION }}
-    - name: Install Poetry
-      run: |
-        pipx install poetry
+    - name: Install uv
+      uses: astral-sh/setup-uv@v6
     - name: Install-only specific KinD version (so it's up-to-date)
       uses: helm/kind-action@v1
       with:
@@ -47,13 +46,13 @@ jobs:
         kubectl patch configmap/inferenceservice-config -n kserve --type=strategic -p '{"data": {"deploy": "{\"defaultDeploymentMode\": \"RawDeployment\"}"}}'
         e2e/enable-modelcar.sh
     - name: Run OLOT tutorial of README, and load image in KinD for amd64
-      run: | 
+      run: |
         IMAGE_DIR=download
         OCI_REGISTRY_SOURCE=quay.io/mmortari/hello-world-wait:latest
         OCI_REGISTRY_DESTINATION=localhost:5001/nstestorg/modelcar
         rm -rf $IMAGE_DIR
         skopeo copy --multi-arch all docker://${OCI_REGISTRY_SOURCE} oci:${IMAGE_DIR}:latest
-        poetry run olot $IMAGE_DIR --modelcard tests/data/sample-model/README.md tests/data/sample-model/model.joblib
+        uv run olot $IMAGE_DIR --modelcard tests/data/sample-model/README.md tests/data/sample-model/model.joblib
         # copy modelcar from oci-layout to the local docker registry
         skopeo copy --tls-verify=false --multi-arch all oci:${IMAGE_DIR}:latest docker://${OCI_REGISTRY_DESTINATION}
         skopeo inspect --tls-verify=false --raw docker://localhost:5001/nstestorg/modelcar | jq .
@@ -82,13 +81,13 @@ jobs:
         curl -s -H "Content-Type: application/json" -d @e2e/data/input1.json http://localhost:8080/v2/models/my-inference-service/infer | jq
         curl -s -H "Content-Type: application/json" -d @e2e/data/input4.json http://localhost:8080/v2/models/my-inference-service/infer | jq
     - name: Run OLOT flow using busybox, and load image in KinD for amd64
-      run: | 
+      run: |
         IMAGE_DIR=download
         OCI_REGISTRY_SOURCE=docker.io/library/busybox:latest
         OCI_REGISTRY_DESTINATION=localhost:5001/nstestorg/modelcar2
         rm -rf $IMAGE_DIR
         skopeo copy --multi-arch all docker://${OCI_REGISTRY_SOURCE} oci:${IMAGE_DIR}:latest
-        poetry run olot $IMAGE_DIR --modelcard tests/data/sample-model/README.md tests/data/sample-model/model.joblib
+        uv run olot $IMAGE_DIR --modelcard tests/data/sample-model/README.md tests/data/sample-model/model.joblib
         skopeo copy --tls-verify=false --multi-arch all oci:${IMAGE_DIR}:latest docker://${OCI_REGISTRY_DESTINATION}
         skopeo inspect --tls-verify=false --raw docker://localhost:5001/nstestorg/modelcar | jq .
         digest=$(skopeo inspect --tls-verify=false --raw docker://localhost:5001/nstestorg/modelcar2 | jq -r '.manifests[] | select(.platform.architecture == "amd64") | .digest')
@@ -133,9 +132,8 @@ jobs:
       uses: actions/setup-python@v6
       with:
         python-version: ${{ env.PYTHON_VERSION }}
-    - name: Install Poetry
-      run: |
-        pipx install poetry
+    - name: Install uv
+      uses: astral-sh/setup-uv@v6
     - name: Install-only specific KinD version (so it's up-to-date)
       uses: helm/kind-action@v1
       with:
@@ -156,13 +154,13 @@ jobs:
         kubectl patch configmap/inferenceservice-config -n kserve --type=strategic -p '{"data": {"deploy": "{\"defaultDeploymentMode\": \"RawDeployment\"}"}}'
         e2e/enable-modelcar.sh
     - name: Run OLOT tutorial of README by adding a ModelPack manifest, and load image in KinD for amd64
-      run: | 
+      run: |
         IMAGE_DIR=download
         OCI_REGISTRY_SOURCE=quay.io/mmortari/hello-world-wait:latest
         OCI_REGISTRY_DESTINATION=localhost:5001/nstestorg/modelcar
         rm -rf $IMAGE_DIR
         skopeo copy --multi-arch all docker://${OCI_REGISTRY_SOURCE} oci:${IMAGE_DIR}:latest
-        poetry run olot $IMAGE_DIR --add-modelpack --modelcard tests/data/sample-model/README.md tests/data/sample-model/model.joblib
+        uv run olot $IMAGE_DIR --add-modelpack --modelcard tests/data/sample-model/README.md tests/data/sample-model/model.joblib
         # copy modelcar from oci-layout to the local docker registry
         skopeo copy --tls-verify=false --multi-arch all oci:${IMAGE_DIR}:latest docker://${OCI_REGISTRY_DESTINATION}
         skopeo inspect --tls-verify=false --raw docker://localhost:5001/nstestorg/modelcar | jq .
@@ -204,9 +202,8 @@ jobs:
       uses: actions/setup-python@v6
       with:
         python-version: ${{ env.PYTHON_VERSION }}
-    - name: Install Poetry
-      run: |
-        pipx install poetry
+    - name: Install uv
+      uses: astral-sh/setup-uv@v6
     - name: Install-only specific KinD version (so it's up-to-date)
       uses: helm/kind-action@v1
       with:
@@ -232,9 +229,8 @@ jobs:
       uses: actions/setup-python@v6
       with:
         python-version: ${{ env.PYTHON_VERSION }}
-    - name: Install Poetry
-      run: |
-        pipx install poetry
+    - name: Install uv
+      uses: astral-sh/setup-uv@v6
     - name: Install-only specific KinD version (so it's up-to-date)
       uses: helm/kind-action@v1
       with:
@@ -244,7 +240,7 @@ jobs:
     - name: Install dependencies (including oras-py extra)
       run: |
         make install
-        poetry install --extras oras-py
+        uv sync --extra oras-py
     - name: Run E2E tests
       run: |
         make test-e2e-oras-py
@@ -261,9 +257,8 @@ jobs:
       uses: actions/setup-python@v6
       with:
         python-version: ${{ env.PYTHON_VERSION }}
-    - name: Install Poetry
-      run: |
-        pipx install poetry
+    - name: Install uv
+      uses: astral-sh/setup-uv@v6
     - name: Install-only specific KinD version (so it's up-to-date)
       uses: helm/kind-action@v1
       with:
@@ -273,7 +268,7 @@ jobs:
     - name: Install dependencies (including oras-py extra)
       run: |
         make install
-        poetry install --extras oras-py
+        uv sync --extra oras-py
     - name: Create KinD cluster and local registry
       run: |
         make deploy-kind-cluster deploy-local-registry
@@ -290,7 +285,7 @@ jobs:
         OCI_REGISTRY_SOURCE=quay.io/mmortari/hello-world-wait:latest
         OCI_REGISTRY_DESTINATION=localhost:5001/nstestorg/modelcar
         rm -rf $IMAGE_DIR
-        poetry run python -c "
+        uv run python -c "
         from olot.backend.oras_py import oras_py_pull, oras_py_push
         from olot.basics import oci_layers_on_top
         oras_py_pull('${OCI_REGISTRY_SOURCE}', '${IMAGE_DIR}')
@@ -335,9 +330,8 @@ jobs:
       uses: actions/setup-python@v6
       with:
         python-version: ${{ env.PYTHON_VERSION }}
-    - name: Install Poetry
-      run: |
-        pipx install poetry
+    - name: Install uv
+      uses: astral-sh/setup-uv@v6
     - name: Install-only specific KinD version (so it's up-to-date)
       uses: helm/kind-action@v1
       with:
@@ -348,7 +342,7 @@ jobs:
       run: |
         make install
     - name: Run OLOT tutorial of README, and load image in KinD for amd64
-      run: | 
+      run: |
         IMAGE_DIR=download
         OCI_REGISTRY_SOURCE=quay.io/mmortari/hello-world-wait:latest
         OCI_REGISTRY_DESTINATION=localhost:5001/nstestorg/modelcar
@@ -360,7 +354,7 @@ jobs:
         cp tests/data/sample-model/README.md "$tmp_dir"
         cp tests/data/sample-model/model.joblib "$tmp_dir"
         ls -la "$tmp_dir"
-        poetry run olot $IMAGE_DIR --modelcard "$tmp_dir"/README.md "$tmp_dir"/model.joblib
+        uv run olot $IMAGE_DIR --modelcard "$tmp_dir"/README.md "$tmp_dir"/model.joblib
         fc=$(find "$tmp_dir" -maxdepth 1 -type f | wc -l)
         if [ "$fc" -ne 2 ]; then
           echo "Expected all 2 files remaining, found:"
@@ -375,7 +369,7 @@ jobs:
         cp tests/data/sample-model/README.md "$tmp_dir"
         cp tests/data/sample-model/model.joblib "$tmp_dir"
         ls -la "$tmp_dir"
-        poetry run olot $IMAGE_DIR --remove-originals --modelcard "$tmp_dir"/README.md "$tmp_dir"/model.joblib
+        uv run olot $IMAGE_DIR --remove-originals --modelcard "$tmp_dir"/README.md "$tmp_dir"/model.joblib
         fc=$(find "$tmp_dir" -maxdepth 1 -type f | wc -l)
         if [ "$fc" -ne 1 ]; then
           echo "Expected only Model CarD remaining, found:"
@@ -390,7 +384,7 @@ jobs:
         cp tests/data/sample-model/README.md "$tmp_dir"
         cp tests/data/sample-model/model.joblib "$tmp_dir"
         ls -la "$tmp_dir"
-        poetry run olot $IMAGE_DIR --remove-originals all --modelcard "$tmp_dir"/README.md "$tmp_dir"/model.joblib
+        uv run olot $IMAGE_DIR --remove-originals all --modelcard "$tmp_dir"/README.md "$tmp_dir"/model.joblib
         fc=$(find "$tmp_dir" -maxdepth 1 -type f | wc -l)
         if [ "$fc" -ne 0 ]; then
           echo "Expected none file remaining, found:"
@@ -415,9 +409,8 @@ jobs:
       uses: actions/setup-python@v6
       with:
         python-version: ${{ env.PYTHON_VERSION }}
-    - name: Install Poetry
-      run: |
-        pipx install poetry
+    - name: Install uv
+      uses: astral-sh/setup-uv@v6
     - name: Install-only specific KinD version (so it's up-to-date)
       uses: helm/kind-action@v1
       with:
@@ -444,7 +437,7 @@ jobs:
         # Using oras copy and chmod analogous to Konflux https://github.com/konflux-ci/build-definitions/blob/5bd79d493ca1ba04512c5f6e1f41f427a3c94e03/task/modelcar-oci-ta/0.1/modelcar-oci-ta.yaml#L161-L162
         oras copy --to-oci-layout ${OCI_REGISTRY_SOURCE} ${IMAGE_DIR}:latest
         chmod -R g+w "${IMAGE_DIR}"
-        poetry run olot $IMAGE_DIR --modelcard tests/data/sample-model/README.md tests/data/sample-model/model.joblib
+        uv run olot $IMAGE_DIR --modelcard tests/data/sample-model/README.md tests/data/sample-model/model.joblib
         # copy modelcar from oci-layout to the local docker registry
         skopeo copy --tls-verify=false --multi-arch all oci:${IMAGE_DIR}:latest docker://${OCI_REGISTRY_DESTINATION}
         skopeo inspect --tls-verify=false --raw docker://localhost:5001/nstestorg/modelcar | jq .
@@ -474,7 +467,7 @@ jobs:
         curl -s -H "Content-Type: application/json" -d @e2e/data/input4.json http://localhost:8080/v2/models/my-inference-service/infer | jq
         kill $PID
     - name: Run like Konflux build defintions using directly oras copy on the amd64 image, and load image in KinD
-      run: | 
+      run: |
         IMAGE_DIR=download
         AMD64_SHA=$(skopeo inspect --raw docker://quay.io/mmortari/hello-world-wait:dockerdistribution | jq -r '.manifests[] | select(.platform.architecture == "amd64") | .digest')
         OCI_REGISTRY_SOURCE=quay.io/mmortari/hello-world-wait@$AMD64_SHA
@@ -483,7 +476,7 @@ jobs:
         # Using oras copy and chmod analogous to Konflux https://github.com/konflux-ci/build-definitions/blob/5bd79d493ca1ba04512c5f6e1f41f427a3c94e03/task/modelcar-oci-ta/0.1/modelcar-oci-ta.yaml#L161-L162
         oras copy --to-oci-layout ${OCI_REGISTRY_SOURCE} ${IMAGE_DIR}:latest
         chmod -R g+w "${IMAGE_DIR}"
-        poetry run olot $IMAGE_DIR --modelcard tests/data/sample-model/README.md tests/data/sample-model/model.joblib
+        uv run olot $IMAGE_DIR --modelcard tests/data/sample-model/README.md tests/data/sample-model/model.joblib
         skopeo copy --tls-verify=false oci:${IMAGE_DIR}:latest docker://${OCI_REGISTRY_DESTINATION}
         docker pull ${OCI_REGISTRY_DESTINATION}
         kind load docker-image -n "olot-e2e" ${OCI_REGISTRY_DESTINATION}
@@ -519,10 +512,9 @@ jobs:
       uses: actions/setup-python@v6
       with:
         python-version: "3.9"
-    - name: Install Poetry
-      run: |
-        pipx install poetry
-    - name: Run the builda and install the python wheel
+    - name: Install uv
+      uses: astral-sh/setup-uv@v6
+    - name: Run the build and install the python wheel
       run: |
         make build
         pip install "$(ls dist/olot-*.whl | head -1)"[modelcar-base-image]
@@ -544,20 +536,19 @@ jobs:
       uses: actions/setup-python@v6
       with:
         python-version: ${{ env.PYTHON_VERSION }}
-    - name: Install Poetry
-      run: |
-        pipx install poetry
+    - name: Install uv
+      uses: astral-sh/setup-uv@v6
     - name: Install dependencies
       run: |
         make install
     - name: Run tutorial alike, with a directory
-      run: | 
+      run: |
         IMAGE_DIR=download
         OCI_REGISTRY_SOURCE=quay.io/mmortari/hello-world-wait:latest
         rm -rf $IMAGE_DIR
         skopeo copy --multi-arch all docker://${OCI_REGISTRY_SOURCE} oci:${IMAGE_DIR}:latest
         # NOT EFFICIENT USAGE:
-        poetry run olot --verbose $IMAGE_DIR --modelcard tests/data/files-and-directory/README.md tests/data/files-and-directory/*
+        uv run olot --verbose $IMAGE_DIR --modelcard tests/data/files-and-directory/README.md tests/data/files-and-directory/*
         skopeo copy oci:download:latest docker-daemon:myimage:latest
         docker run --rm --user 1000:1000 myimage:latest ls -la /models
         docker run --rm --user 1000:1000 myimage:latest stat /models

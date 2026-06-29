@@ -17,13 +17,12 @@ jobs:
       uses: actions/checkout@v6
     - name: Install oras
       uses: oras-project/setup-oras@v2
+    - name: Install uv
+      uses: astral-sh/setup-uv@v6
     - name: Set up Python
       uses: actions/setup-python@v6
       with:
         python-version: ${{ matrix.python-version }}
-    - name: Install Poetry
-      run: |
-        pipx install poetry
     - name: Install dependencies
       run: |
         make install
@@ -41,15 +40,14 @@ jobs:
         uses: actions/setup-python@v6
         with:
           python-version: '3.9'
-      - name: Install Poetry
-        run: |
-          pipx install poetry
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
       - name: Install dependencies
         run: |
           make install
       - name: Run Ruff
-        run: | 
-          poetry run ruff check --config=pyproject.toml --output-format=github .
+        run: |
+          uv run ruff check --config=pyproject.toml --output-format=github .
   check-code-sync:
     name: Check code is in sync
     runs-on: ubuntu-latest
@@ -62,9 +60,8 @@ jobs:
         uses: actions/setup-python@v6
         with:
           python-version: "3.9"
-      - name: Install Poetry
-        run: |
-          pipx install poetry
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
       - name: make build lint
         run: |
           make build lint

@@ -1,11 +1,11 @@
 
 .PHONY: install
 install:
-	poetry install
+	uv sync
 
 .PHONY: build
 build: install
-	poetry build
+	uv build
 
 .PHONY: deploy-kind-cluster
 deploy-kind-cluster:
@@ -17,24 +17,24 @@ deploy-local-registry:
 
 .PHONY: test
 test:
-	poetry run pytest -s -x -rA
+	uv run pytest -s -x -rA
 
 .PHONY: test-e2e-skopeo
 test-e2e-skopeo: deploy-kind-cluster deploy-local-registry
-	poetry run pytest --e2e-skopeo -s -x -rA
+	uv run pytest --e2e-skopeo -s -x -rA
 
 .PHONY: test-e2e-oras
 test-e2e-oras: deploy-kind-cluster deploy-local-registry
-	poetry run pytest --e2e-oras -s -x -rA
+	uv run pytest --e2e-oras -s -x -rA
 
 .PHONY: test-e2e-oras-py
 test-e2e-oras-py: deploy-kind-cluster deploy-local-registry
-	poetry run pytest --e2e-oras-py -s -x -rA
+	uv run pytest --e2e-oras-py -s -x -rA
 
 .PHONY: lint
 lint: install
-	poetry run ruff check --fix
+	uv run ruff check --fix
 
 .PHONY: mypy
 mypy: install
-	poetry run mypy .
+	uv run mypy .
