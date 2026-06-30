@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
     - name: Install Skopeo
       uses: ./.github/actions/install-skopeo
     - name: Set up Python
@@ -125,7 +125,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
     - name: Install Skopeo
       uses: ./.github/actions/install-skopeo
     - name: Set up Python
@@ -194,7 +194,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
     - name: Install oras
       uses: oras-project/setup-oras@v2
     - run: oras version
@@ -222,7 +222,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
     - name: Install Skopeo
       uses: ./.github/actions/install-skopeo
     - name: Set up Python
@@ -250,7 +250,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
     - name: Install Skopeo
       uses: ./.github/actions/install-skopeo
     - name: Set up Python
@@ -323,7 +323,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
     - name: Install Skopeo
       uses: ./.github/actions/install-skopeo
     - name: Set up Python
@@ -399,7 +399,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
     - name: Install Skopeo
       uses: ./.github/actions/install-skopeo
     - name: Install oras
@@ -507,7 +507,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
     - name: Set up Python
       uses: actions/setup-python@v6
       with:
@@ -529,7 +529,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
     - name: Install Skopeo
       uses: ./.github/actions/install-skopeo
     - name: Set up Python
