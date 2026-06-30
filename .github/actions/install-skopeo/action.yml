@@ -10,6 +10,13 @@ runs:
         eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv bash)"
         brew install skopeo
         echo "/home/linuxbrew/.linuxbrew/bin" >> "$GITHUB_PATH"
+    - name: Fix registries.conf to v2 format (newer skopeo rejects the v1 format shipped on GHA runners)
+      shell: bash
+      run: |
+        # Rewrite the v1 registries.conf that GHA runner-images ships as v2 format.
+        # ref: https://github.com/actions/runner-images/blob/84d512e310aacbead6836732a08c9031f1d397a8/images/ubuntu/scripts/build/install-container-tools.sh#L31
+        sudo mkdir -p /etc/containers
+        printf 'unqualified-search-registries = ["docker.io", "quay.io"]\n' | sudo tee /etc/containers/registries.conf
     - name: Display Skopeo version
       shell: bash
       run: skopeo --version

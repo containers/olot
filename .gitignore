@@ -12,6 +12,8 @@ efi-variable-store
 
 # Generated python library wheels
 dist
+build
+*.egg-info
 
 # Mkdocs
 site
