@@ -9,7 +9,7 @@ on:
 env:
   KIND_VERSION: 'v0.29.0'
   KIND_NODE_IMAGE: 'kindest/node:v1.33.1'
-  PYTHON_VERSION: '3.9'
+  PYTHON_VERSION: '3.10'
 
 jobs:
   e2e-skopeo:
@@ -511,7 +511,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v6
       with:
-        python-version: "3.9"
+        python-version: ${{ env.PYTHON_VERSION }}
     - name: Install uv
       uses: astral-sh/setup-uv@v6
     - name: Run the build and install the python wheel
