@@ -18,7 +18,7 @@ jobs:
     - name: Install oras
       uses: oras-project/setup-oras@v2
     - name: Install uv
-      uses: astral-sh/setup-uv@v6
+      uses: astral-sh/setup-uv@v7
     - name: Set up Python
       uses: actions/setup-python@v6
       with:
@@ -41,7 +41,7 @@ jobs:
         with:
           python-version: '3.10'
       - name: Install uv
-        uses: astral-sh/setup-uv@v6
+        uses: astral-sh/setup-uv@v7
       - name: Install dependencies
         run: |
           make install
@@ -61,7 +61,7 @@ jobs:
         with:
           python-version: "3.10"
       - name: Install uv
-        uses: astral-sh/setup-uv@v6
+        uses: astral-sh/setup-uv@v7
       - name: make build lint
         run: |
           make build lint

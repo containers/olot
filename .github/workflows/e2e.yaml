@@ -25,7 +25,7 @@ jobs:
       with:
         python-version: ${{ env.PYTHON_VERSION }}
     - name: Install uv
-      uses: astral-sh/setup-uv@v6
+      uses: astral-sh/setup-uv@v7
     - name: Install-only specific KinD version (so it's up-to-date)
       uses: helm/kind-action@v1
       with:
@@ -133,7 +133,7 @@ jobs:
       with:
         python-version: ${{ env.PYTHON_VERSION }}
     - name: Install uv
-      uses: astral-sh/setup-uv@v6
+      uses: astral-sh/setup-uv@v7
     - name: Install-only specific KinD version (so it's up-to-date)
       uses: helm/kind-action@v1
       with:
@@ -203,7 +203,7 @@ jobs:
       with:
         python-version: ${{ env.PYTHON_VERSION }}
     - name: Install uv
-      uses: astral-sh/setup-uv@v6
+      uses: astral-sh/setup-uv@v7
     - name: Install-only specific KinD version (so it's up-to-date)
       uses: helm/kind-action@v1
       with:
@@ -230,7 +230,7 @@ jobs:
       with:
         python-version: ${{ env.PYTHON_VERSION }}
     - name: Install uv
-      uses: astral-sh/setup-uv@v6
+      uses: astral-sh/setup-uv@v7
     - name: Install-only specific KinD version (so it's up-to-date)
       uses: helm/kind-action@v1
       with:
@@ -258,7 +258,7 @@ jobs:
       with:
         python-version: ${{ env.PYTHON_VERSION }}
     - name: Install uv
-      uses: astral-sh/setup-uv@v6
+      uses: astral-sh/setup-uv@v7
     - name: Install-only specific KinD version (so it's up-to-date)
       uses: helm/kind-action@v1
       with:
@@ -331,7 +331,7 @@ jobs:
       with:
         python-version: ${{ env.PYTHON_VERSION }}
     - name: Install uv
-      uses: astral-sh/setup-uv@v6
+      uses: astral-sh/setup-uv@v7
     - name: Install-only specific KinD version (so it's up-to-date)
       uses: helm/kind-action@v1
       with:
@@ -410,7 +410,7 @@ jobs:
       with:
         python-version: ${{ env.PYTHON_VERSION }}
     - name: Install uv
-      uses: astral-sh/setup-uv@v6
+      uses: astral-sh/setup-uv@v7
     - name: Install-only specific KinD version (so it's up-to-date)
       uses: helm/kind-action@v1
       with:
@@ -513,7 +513,7 @@ jobs:
       with:
         python-version: ${{ env.PYTHON_VERSION }}
     - name: Install uv
-      uses: astral-sh/setup-uv@v6
+      uses: astral-sh/setup-uv@v7
     - name: Run the build and install the python wheel
       run: |
         make build
@@ -537,7 +537,7 @@ jobs:
       with:
         python-version: ${{ env.PYTHON_VERSION }}
     - name: Install uv
-      uses: astral-sh/setup-uv@v6
+      uses: astral-sh/setup-uv@v7
     - name: Install dependencies
       run: |
         make install
