@@ -25,7 +25,7 @@ rm -rf $IMAGE_DIR
 # Downloads the image `/quay.io/mmortari/hello-world-wait:latest` to the folder `download` with tag `latest`
 skopeo copy --multi-arch all docker://${OCI_REGISTRY_SOURCE} oci:${IMAGE_DIR}:latest
 
-# If using oras, you will need to also need to add write permissions
+# If using oras, you will also need to add write permissions
 # oras copy --to-oci-layout $OCI_REGISTRY_SOURCE ./${IMAGE_DIR}:latest
 # chmod +w ${IMAGE_DIR}/blobs/sha256/*
 
@@ -85,7 +85,7 @@ pip install olot
 Import and add layers onto a locally available model (using skopeo):
 
 ```python
-from olot.basic import oci_layers_on_top
+from olot.basics import oci_layers_on_top
 from olot.backend.skopeo import skopeo_pull, skopeo_push
 
 model_dir = 'download'
@@ -94,14 +94,14 @@ oci_registry_destination='quay.io/mmortari/demo20241208:latest'
 
 model_files = [
     'tests/data/sample-model/model.joblib',
-    'tests/data/sample-model/README.md',
 ]
+modelcard = 'tests/data/sample-model/README.md'
 
 # Download the model
 skopeo_pull(oci_registry_source, model_dir)
 
 # Add the layers
-oci_layers_on_top(model_dir, model_files)
+oci_layers_on_top(model_dir, model_files, modelcard=modelcard)
 
 # Push the model
 skopeo_push(model_dir, oci_registry_destination)
@@ -119,8 +119,8 @@ oci_registry_destination='quay.io/mmortari/demo20241208:latest'
 
 model_files = [
     'tests/data/sample-model/model.joblib',
-    'tests/data/sample-model/README.md',
 ]
+modelcard = 'tests/data/sample-model/README.md'
 
 # pip install olot[oras-py]
 
@@ -128,7 +128,7 @@ model_files = [
 oras_py_pull(oci_registry_source, model_dir)
 
 # Add the layers
-oci_layers_on_top(model_dir, model_files)
+oci_layers_on_top(model_dir, model_files, modelcard=modelcard)
 
 # Push the model (no external Skopeo/CLI tools needed)
 oras_py_push(model_dir, oci_registry_destination)
