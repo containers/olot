@@ -119,6 +119,40 @@ def test_tarball_from_file(tmp_path):
     assert found
 
 
+def test_tarball_gnu_format_clair_compat_large_file_size():
+    """Clair tarfs ignores PAX size= attrs; >8GiB files need GNU binary size in the ustar header.
+
+    Without GNU_FORMAT, Python's default PAX leaves ustar size=0 for files >8GiB and Clair
+    fails with: tarfs: error finding segments: bad block at 1536
+    """
+    info = tarfile.TarInfo(name="/models/model-00001-of-00002.safetensors")
+    info.size = 9 * 1024**3  # >8GiB
+    info.uid = 0
+    info.gid = 0
+    info.mode = 0o664
+
+    # PAX (Python default): file header at block 2 has size=0 — Clair would mis-parse.
+    pax = info.tobuf(tarfile.PAX_FORMAT, "utf-8")
+    assert len(pax) == 1536
+    assert pax[1024 + 124 : 1024 + 136] == b"00000000000\x00"
+
+    # GNU: size is binary-encoded in the ustar header (high bit set) — Clair parseNumber handles this.
+    gnu = info.tobuf(tarfile.GNU_FORMAT, "utf-8")
+    assert len(gnu) == 512
+    assert gnu[257:263] == b"ustar "  # GNU magic
+    assert gnu[124] & 0x80  # binary size field
+
+
+def test_tarball_from_file_writes_gnu_magic(tmp_path):
+    """Layers written by tarball_from_file must use GNU ustar magic for Clair compatibility."""
+    model_path = sample_model_path() / "model.joblib"
+    write_dest = sha256_path(tmp_path)
+    write_dest.mkdir(parents=True, exist_ok=True)
+    digest = tarball_from_file(model_path, write_dest).layer_digest
+    raw = (write_dest / digest).read_bytes()
+    assert raw[257:263] == b"ustar "
+
+
 def test_tarball_from_file_using_prefix(tmp_path):
     """Test tarball_from_file() function is able to produce the expected tar (uncompressed) layer blob in the oci-layout
     but providing a custom prefix location for the file.

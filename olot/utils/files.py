@@ -127,7 +127,9 @@ def tarball_from_file(file_path: Path, dest: Path, prefix: str = "/models/") -> 
         input_type = LayerInputType.DIRECTORY
         with open(temp_dest, "wb") as temp_file:
             writer = HashingWriter(temp_file)
-            with tarfile.open(fileobj=writer, mode="w") as tar: # type: ignore[call-overload]
+            # GNU_FORMAT: Clair tarfs ignores PAX size= attrs; files >8GiB need
+            # the binary size in the ustar header or Clair fails with bad block.
+            with tarfile.open(fileobj=writer, mode="w", format=tarfile.GNU_FORMAT) as tar: # type: ignore[call-overload]
                 if file_path.is_file():
                     with open(file_path, 'rb') as f:
                         hashing_reader = HashingFileReader(f)
@@ -184,7 +186,8 @@ def targz_from_file(file_path: Path, dest: Path, prefix: str = "/models/") -> La
             writer = HashingWriter(temp_file)
             with gzip.GzipFile(fileobj=writer, mode="wb", mtime=0, compresslevel=6) as gz: # type: ignore[call-overload]
                 inner_writer = HashingWriter(gz)
-                with tarfile.open(fileobj=inner_writer, mode="w") as tar: # type: ignore[call-overload]
+                # GNU_FORMAT: see tarball_from_file — Clair needs ustar size for >8GiB files.
+                with tarfile.open(fileobj=inner_writer, mode="w", format=tarfile.GNU_FORMAT) as tar: # type: ignore[call-overload]
                     if file_path.is_file():
                         with open(file_path, 'rb') as f:
                             hashing_reader = HashingFileReader(f)
