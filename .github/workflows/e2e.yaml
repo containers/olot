@@ -196,7 +196,7 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
     - name: Install oras
-      uses: oras-project/setup-oras@38de303aac69abb66f3e6255b7198bff35f323e3 # v2
+      uses: oras-project/setup-oras@1d808f7d7f6995cc68b7bf507bfe5c5446e1dc9d # v2
     - run: oras version
     - name: Set up Python
       uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
@@ -403,7 +403,7 @@ jobs:
     - name: Install Skopeo
       uses: ./.github/actions/install-skopeo
     - name: Install oras
-      uses: oras-project/setup-oras@38de303aac69abb66f3e6255b7198bff35f323e3 # v2
+      uses: oras-project/setup-oras@1d808f7d7f6995cc68b7bf507bfe5c5446e1dc9d # v2
     - run: oras version
     - name: Set up Python
       uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
