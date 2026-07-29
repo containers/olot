@@ -25,7 +25,7 @@ def file_checksums_without_compression(source_file: Path, tmp_dest: Path) -> str
 
     with open(temp_tar_filename, "wb") as temp_file:
         writer = HashingWriter(temp_file)
-        with tarfile.open(fileobj=writer, mode="w") as tar: # type: ignore[call-overload]
+        with tarfile.open(fileobj=writer, mode="w", format=tarfile.GNU_FORMAT) as tar: # type: ignore[call-overload]
             tar.add(source_file, arcname="/models/"+source_file.name, filter=tar_filter_fn)
     sha = get_file_hash(temp_tar_filename)
     shutil.rmtree(tmp_dest)
@@ -39,13 +39,13 @@ def file_checksums_with_compression(source_file: Path, tmp_dest: Path) -> tuple[
         writer = HashingWriter(temp_file)
         with gzip.GzipFile(fileobj=writer, mode="wb", mtime=0, compresslevel=6) as gz: # type: ignore[call-overload]
             inner_writer = HashingWriter(gz)
-            with tarfile.open(fileobj=inner_writer, mode="w") as tar: # type: ignore[call-overload]
+            with tarfile.open(fileobj=inner_writer, mode="w", format=tarfile.GNU_FORMAT) as tar: # type: ignore[call-overload]
                 tar.add(source_file, arcname="/models/"+source_file.name, filter=tar_filter_fn)
 
     postcompress_chksum_from_disk = get_file_hash(temp_tar_filename)
 
     uncompressed_tar = tmp_dest / "uncompressed.tar"
-    with tarfile.open(uncompressed_tar, mode="w") as tar: # type: ignore[call-overload]
+    with tarfile.open(uncompressed_tar, mode="w", format=tarfile.GNU_FORMAT) as tar: # type: ignore[call-overload]
         tar.add(source_file, arcname=source_file.name)
     uncompressed_checksum_from_disk = get_file_hash(uncompressed_tar)
 
