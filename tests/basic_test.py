@@ -49,7 +49,7 @@ def test_crawl_ocilayout_indexes():
     ocilayout2_path = Path(__file__).parent / "data" / "ocilayout2"
     mut: dict[str, OCIImageIndex] = crawl_ocilayout_indexes(ocilayout2_path, read_ocilayout_root_index(ocilayout2_path))
     assert len(mut.keys()) == 1
-    assert "d437889e826ecce2116ac711469bd09b1bb3c64d45055cbf23a6f8f3db223b8b" in mut.keys()
+    assert "d437889e826ecce2116ac711469bd09b1bb3c64d45055cbf23a6f8f3db223b8b" in mut
     index0 = mut["d437889e826ecce2116ac711469bd09b1bb3c64d45055cbf23a6f8f3db223b8b"]
     assert index0.mediaType == "application/vnd.oci.image.index.v1+json"
     assert len(index0.manifests) == 2
@@ -221,7 +221,7 @@ def test_oci_layers_on_top_single_manifest_and_check_annotations(tmp_path: Path)
 
     for layer in manifest0.layers[1:]: # skip original first layer in original oci-layout
         assert layer.annotations
-        assert "org.opencontainers.image.title" in layer.annotations.keys()
+        assert "org.opencontainers.image.title" in layer.annotations
     assert manifest0.layers[1].annotations
     assert manifest0.layers[1].annotations["org.opencontainers.image.title"] == "model.joblib"
     assert manifest0.layers[2].annotations
@@ -229,7 +229,7 @@ def test_oci_layers_on_top_single_manifest_and_check_annotations(tmp_path: Path)
     # identify the ModelCarD layer by means of annotation(s) on the layer
     assert manifest0.layers[3].annotations
     assert manifest0.layers[3].annotations["org.opencontainers.image.title"] == "README.md"
-    assert "io.opendatahub.modelcar.layer.type" in manifest0.layers[3].annotations.keys()
+    assert "io.opendatahub.modelcar.layer.type" in manifest0.layers[3].annotations
     assert manifest0.layers[3].annotations["io.opendatahub.modelcar.layer.type"] == "modelcard"
 
     # identify the ModelCarD by means of annotation from the Image Manifest
@@ -243,7 +243,7 @@ def test_oci_layers_on_top_single_manifest_and_check_annotations(tmp_path: Path)
         mc = OCIManifestConfig.model_validate_json(f.read())
         assert mc.history
         assert len(mc.history) == 5 # check we preserved also previous history, 2 elements, + 3 new history items for the 3 new layers
-        assert len(list(x for x in mc.history if not x.empty_layer)) == len(manifest0.layers)
+        assert len([x for x in mc.history if not x.empty_layer]) == len(manifest0.layers)
 
 
 def test_add_modelpack_manifest_using_ocilayout3(tmp_path: Path):

@@ -155,9 +155,11 @@ def create_oci_image_manifest(
     artifactType: str | None = None,
     config: ContentDescriptor = empty_config(),
     subject: ContentDescriptor | None = None,
-    layers: list[ContentDescriptor] = [],
+    layers: list[ContentDescriptor] | None = None,
     annotations: Annotations | None = None,
 ) -> OCIImageManifest:
+    if layers is None:
+        layers = []
     return OCIImageManifest(
         schemaVersion=schemaVersion,
         mediaType=mediaType,
@@ -174,7 +176,7 @@ def get_file_media_type(file_path: os.PathLike) -> str:
     Get the MIME type of a file using the `file` command.
     """
     try:
-        result = subprocess.run(['file', '--mime-type', '-b', file_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+        result = subprocess.run(['file', '--mime-type', '-b', file_path], capture_output=True, check=True)
         mime_type = result.stdout.decode('utf-8').strip()
         return mime_type
     except subprocess.CalledProcessError as e:

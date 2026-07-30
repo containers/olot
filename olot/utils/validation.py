@@ -141,9 +141,8 @@ def is_valid_oci_reference(reference: str) -> bool:
             repository = rest
 
     # Validate registry if present
-    if registry is not None:
-        if not is_valid_registry_host_port(registry):
-            return False
+    if registry is not None and not is_valid_registry_host_port(registry):
+        return False
 
     # Validate repository (required)
     if not repository:
@@ -157,13 +156,11 @@ def is_valid_oci_reference(reference: str) -> bool:
         return False
 
     # Validate tag if present
-    if tag is not None:
-        if not _tag_re.match(tag):
-            return False
+    if tag is not None and not _tag_re.match(tag):
+        return False
 
     # Validate digest if present
-    if digest is not None:
-        if not _digest_re.match(digest):
-            return False
+    if digest is not None and not _digest_re.match(digest):  # noqa: SIM103
+        return False
 
     return True

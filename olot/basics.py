@@ -294,7 +294,7 @@ def add_modelpack_manifest(ocilayout: Path, new_layers: dict[str, LayerStats]) -
     """
     model_config = Model(
         descriptor=ModelDescriptor(name=None), # eventually config and metadata will be provided programmatically
-        modelfs=ModelFS(type=Type.layers, diffIds=list(b.diff_id for b in new_layers.values())),
+        modelfs=ModelFS(type=Type.layers, diffIds=[b.diff_id for b in new_layers.values()]),
         config=ModelConfig(),
     )
     model_config_json = model_config.model_dump_json(exclude_none=True)
@@ -359,7 +359,7 @@ def check_and_sanitize_flag_add_modelpack(add_modelpack: bool | None, ocilayout_
 def check_manifest(manifest: OCIImageManifest, config: OCIManifestConfig):
     """perform some sanity check on the manifests required for additional scenarios of usage
     """
-    ch_count = len(list(x for x in config.history if not x.empty_layer)) if config.history else 0
+    ch_count = len([x for x in config.history if not x.empty_layer]) if config.history else 0
     layers_count = len(manifest.layers)
     if layers_count != ch_count:
         raise ValueError(f"history lists {ch_count} non-empty layers, but there are {layers_count} layers in the image manifest")
@@ -369,7 +369,7 @@ def crawl_ocilayout_manifests(ocilayout: Path, ocilayout_indexes: dict[str, OCII
     """crawl Manifests from referred OCI Index(es) and Manifests in the root index of the oci-layout
     """
     ocilayout_manifests: dict[str, OCIImageManifest]  = {}
-    for _, mi in ocilayout_indexes.items():
+    for mi in ocilayout_indexes.values():
         for m in mi.manifests:
             logger.debug("Parsing manifest %s", m)
             if m.mediaType != MediaTypes.manifest:

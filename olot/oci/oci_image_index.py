@@ -207,12 +207,14 @@ def create_oci_image_index(
     mediaType: str | None = MediaTypes.index,
     artifactType: str | None = None,
     subject: ContentDescriptor | None = None,
-    manifests: list[Manifest] = [],
+    manifests: list[Manifest] | None = None,
     annotations: Annotations | None = None
 ) -> OCIImageIndex:
     """
     Create an OCI image index object.
     """
+    if manifests is None:
+        manifests = []
     return OCIImageIndex(
         schemaVersion=schemaVersion,
         mediaType=mediaType,
