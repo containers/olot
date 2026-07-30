@@ -56,8 +56,7 @@ def test_skopeo_scenario(tmp_path):
     subprocess.run(["skopeo","list-tags","--tls-verify=false","docker://localhost:5001/nstestorg/modelcar"], check=True)
 
     # copy from Container Registry to Docker daemon for local running the modelcar as-is
-    result = subprocess.run("skopeo inspect --tls-verify=false --raw docker://localhost:5001/nstestorg/modelcar | jq -r '.manifests[] | select(.platform.architecture == \"amd64\") | .digest'", shell=True, text=True, capture_output=True)
-    assert result.returncode == 0
+    result = subprocess.run("skopeo inspect --tls-verify=false --raw docker://localhost:5001/nstestorg/modelcar | jq -r '.manifests[] | select(.platform.architecture == \"amd64\") | .digest'", shell=True, text=True, capture_output=True, check=True)
     digest = result.stdout.strip()
     print(digest)
     # use by convention the linux/amd64
@@ -111,8 +110,7 @@ def test_skopeo_scenario_modelcard(tmp_path):
     subprocess.run(["skopeo","list-tags","--tls-verify=false","docker://localhost:5001/nstestorg/modelcar"], check=True)
 
     # copy from Container Registry to Docker daemon for local running the modelcar as-is
-    result = subprocess.run("skopeo inspect --tls-verify=false --raw docker://localhost:5001/nstestorg/modelcar | jq -r '.manifests[] | select(.platform.architecture == \"amd64\") | .digest'", shell=True, text=True, capture_output=True)
-    assert result.returncode == 0
+    result = subprocess.run("skopeo inspect --tls-verify=false --raw docker://localhost:5001/nstestorg/modelcar | jq -r '.manifests[] | select(.platform.architecture == \"amd64\") | .digest'", shell=True, text=True, capture_output=True, check=True)
     digest = result.stdout.strip()
     print(digest)
     # use by convention the linux/amd64
