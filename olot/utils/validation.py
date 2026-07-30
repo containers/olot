@@ -121,7 +121,7 @@ def is_valid_oci_reference(reference: str) -> bool:
             # If it's empty, invalid
             if not potential_tag:
                 return False
-            if '/' not in potential_tag:
+            if '/' not in potential_tag:  # noqa: SIM102
                 # Could be a tag or a port number
                 # If there's no / in potential_tag and it's a valid tag, it must be a tag
                 # (registry:port MUST be followed by /repository)

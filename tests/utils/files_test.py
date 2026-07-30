@@ -212,7 +212,7 @@ def test_targz_from_file(tmp_path):
     assert found
 
     uncompressed_tar = write_dest / "uncompressed.tar"
-    with gzip.open(write_dest / postcomp_chksum, "rb") as g_in:
+    with gzip.open(write_dest / postcomp_chksum, "rb") as g_in:   # noqa: SIM117
         with open(uncompressed_tar, "wb") as f_out:
             shutil.copyfileobj(g_in, f_out)
     for file in tmp_path.rglob('*'):
