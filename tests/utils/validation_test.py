@@ -1,4 +1,4 @@
-from olot.utils.validation import is_valid_registry_host_port, is_valid_oci_reference
+from olot.utils.validation import is_valid_oci_reference, is_valid_registry_host_port
 
 
 def test_valid_ipv4_address():

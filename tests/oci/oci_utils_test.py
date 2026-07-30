@@ -2,6 +2,7 @@
 from olot.oci.oci_utils import get_descriptor_from_manifest
 from tests.common import get_test_data_path
 
+
 def test_get_descriptor_from_manifest():
     data_path = get_test_data_path()
 

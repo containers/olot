@@ -2,14 +2,17 @@ import os
 import shutil
 import subprocess
 import time
-import docker # type: ignore
 from pathlib import Path
+
+import docker  # type: ignore
 import pytest
+
 from olot.backend.oras_cp import is_oras, oras_pull, oras_push
 from olot.basics import oci_layers_on_top
-from olot.oci.oci_image_layout import verify_ocilayout
 from olot.oci.oci_image_index import read_ocilayout_root_index
+from olot.oci.oci_image_layout import verify_ocilayout
 from tests.common import sample_model_path
+
 
 @pytest.mark.e2e_oras
 def test_is_oras():

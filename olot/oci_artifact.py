@@ -1,17 +1,25 @@
 import datetime
-from pathlib import Path
-import os
 import json
-from typing import List, Union
+import os
+from pathlib import Path
 
 from olot.constants import ANNOTATION_LAYER_CONTENT_NAME
-from olot.oci.oci_config import HistoryItem, OCIManifestConfig, Rootfs, Type
-from olot.oci.oci_image_manifest import ContentDescriptor, create_oci_image_manifest, create_manifest_layers
-from olot.oci.oci_image_layout import ImageLayoutVersion, OCIImageLayout, create_ocilayout
 from olot.oci.oci_common import MediaTypes, Values
+from olot.oci.oci_config import HistoryItem, OCIManifestConfig, Rootfs, Type
 from olot.oci.oci_image_index import Manifest, OCIImageIndex, create_oci_image_index
+from olot.oci.oci_image_layout import (
+    ImageLayoutVersion,
+    OCIImageLayout,
+    create_ocilayout,
+)
+from olot.oci.oci_image_manifest import (
+    ContentDescriptor,
+    create_manifest_layers,
+    create_oci_image_manifest,
+)
 from olot.utils.files import MIMETypes, tarball_from_file, targz_from_file, walk_files
 from olot.utils.types import compute_hash_of_str
+
 
 def create_oci_artifact_from_model(source_dir: Path, dest_dir: Path):
     """
@@ -80,7 +88,7 @@ def create_oci_artifact_from_model(source_dir: Path, dest_dir: Path):
         raise ValueError(f"Invalid empty_digest format: {Values.empty_digest}")
 
 
-def create_blobs(model_files: List[Path], dest_dir: Path):
+def create_blobs(model_files: list[Path], dest_dir: Path):
     """
     Create the blobs directory for an OCI artifact.
     """
@@ -104,9 +112,9 @@ def create_blobs(model_files: List[Path], dest_dir: Path):
 
 def create_simple_oci_artifact(source_path: Path,
                                oci_layout_path: Path,
-                               artifact_type: Union[str, None] = None,
-                               subject: Union[ContentDescriptor, None] = None,
-                               annotations: Union[dict[str, str], None] = None):
+                               artifact_type: str | None = None,
+                               subject: ContentDescriptor | None = None,
+                               annotations: dict[str, str] | None = None):
     """
     Create a simple OCI artifact from a source directory.
     """

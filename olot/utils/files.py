@@ -1,12 +1,11 @@
-from dataclasses import dataclass
+import gzip
 import hashlib
 import logging
+import os
 import shutil
 import tarfile
+from dataclasses import dataclass
 from pathlib import Path
-import gzip
-import os
-from typing import List
 
 from olot.enums import LayerInputType
 
@@ -219,7 +218,7 @@ def handle_remove(path: os.PathLike):
         os.remove(path)
 
 
-def walk_files(root_path: os.PathLike) -> List[Path]:
+def walk_files(root_path: os.PathLike) -> list[Path]:
     """
     Recursively walks a directory and returns all files as relative paths, skipping any symlinks
     and the `lost+found` directory.

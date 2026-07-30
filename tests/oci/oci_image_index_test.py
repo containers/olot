@@ -1,6 +1,6 @@
 from olot.oci.oci_image_index import read_ocilayout_root_index
-
 from tests.common import get_test_data_path
+
 
 def test_read_ocilayout_root_index():
     """Read correctly the ocilayout_root_index in a given oci-layout

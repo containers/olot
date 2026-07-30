@@ -1,23 +1,32 @@
+import logging
+import os
+from pathlib import Path
+
+import pytest
+
 from olot.backend.oras_cp import oras_push
 from olot.backend.skopeo import skopeo_inspect, skopeo_push
 from olot.basics import write_empty_config_in_ocilayoyt
 from olot.oci.oci_common import MediaTypes
 from olot.oci.oci_image_index import Manifest, OCIImageIndex
 from olot.oci.oci_image_layout import OCIImageLayout
-from olot.oci.oci_image_manifest import ContentDescriptor, OCIImageManifest, create_oci_image_manifest, empty_config
+from olot.oci.oci_image_manifest import (
+    ContentDescriptor,
+    OCIImageManifest,
+    create_oci_image_manifest,
+    empty_config,
+)
 from olot.oci.oci_utils import get_descriptor_from_manifest
+from olot.oci_artifact import create_blobs, create_simple_oci_artifact
 from olot.utils.files import targz_from_file, walk_files
 from olot.utils.types import compute_hash_of_str
-from tests.common import get_test_data_path, sample_model_path, file_checksums_with_compression, file_checksums_without_compression
-from olot.oci_artifact import create_blobs, create_simple_oci_artifact
-import pytest
-import logging
-
-import os
-from pathlib import Path
-
+from tests.common import (
+    file_checksums_with_compression,
+    file_checksums_without_compression,
+    get_test_data_path,
+    sample_model_path,
+)
 from tests.conftest import registry_addr
-
 
 logger = logging.getLogger(__name__)
 

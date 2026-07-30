@@ -1,7 +1,8 @@
 import pytest
-from olot.oci.oci_image_layout import verify_ocilayout
 
+from olot.oci.oci_image_layout import verify_ocilayout
 from tests.common import get_test_data_path
+
 
 def test_verify_ocilayout():
     """Test verify_ocilayout() fn on known oci-layout and not

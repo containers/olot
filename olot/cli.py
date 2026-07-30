@@ -1,6 +1,7 @@
-from os import PathLike
-import click
 import logging
+from os import PathLike
+
+import click
 
 from .basics import RemoveOriginals, oci_layers_on_top
 

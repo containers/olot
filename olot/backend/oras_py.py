@@ -34,10 +34,10 @@ def _normalize_docker_hub(reference: str) -> str:
     return reference.replace("docker.io/", "registry-1.docker.io/", 1)
 
 
-def oras_py_pull(base_image: str, dest: typing.Union[str, os.PathLike], *, insecure: bool = False, tls_verify: bool = True) -> None:
+def oras_py_pull(base_image: str, dest: str | os.PathLike, *, insecure: bool = False, tls_verify: bool = True) -> None:
     """Pull an image from a registry to a local OCI layout directory using oras-py."""
-    from oras.provider import Registry
     from oras.layout.layout import NewLayoutFromRegistry
+    from oras.provider import Registry
 
     if isinstance(dest, os.PathLike):
         dest = str(dest)
@@ -48,10 +48,10 @@ def oras_py_pull(base_image: str, dest: typing.Union[str, os.PathLike], *, insec
     NewLayoutFromRegistry(path=dest, provider=registry, target=base_image, tag="latest")
 
 
-def oras_py_push(src: typing.Union[str, os.PathLike], oci_ref: str, *, insecure: bool = False, tls_verify: bool = True) -> None:
+def oras_py_push(src: str | os.PathLike, oci_ref: str, *, insecure: bool = False, tls_verify: bool = True) -> None:
     """Push a local OCI layout directory to a registry using oras-py."""
-    from oras.provider import Registry
     from oras.layout.layout import NewLayout
+    from oras.provider import Registry
 
     if isinstance(src, os.PathLike):
         src = str(src)

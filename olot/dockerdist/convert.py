@@ -2,12 +2,12 @@ import json
 import logging
 import os
 from pathlib import Path
-from typing import Dict
+
+from olot.oci.oci_common import MediaTypes
 from olot.oci.oci_config import OCIManifestConfig
 from olot.oci.oci_image_index import OCIImageIndex
+from olot.oci.oci_image_manifest import ContentDescriptor, OCIImageManifest
 from olot.utils.types import compute_hash_of_str
-from olot.oci.oci_image_manifest import OCIImageManifest, ContentDescriptor
-from olot.oci.oci_common import MediaTypes
 
 DOCKER_LIST_V2 = "application/vnd.docker.distribution.manifest.list.v2+json"
 DOCKER_MANIFEST_V2 = "application/vnd.docker.distribution.manifest.v2+json"
@@ -34,7 +34,7 @@ def check_if_oci_layout_contains_docker_manifests(directory: Path) -> bool:
     return False
 
 
-def convert_docker_manifests_to_oci(directory: Path) -> Dict[str, str]:
+def convert_docker_manifests_to_oci(directory: Path) -> dict[str, str]:
     """
     Scan directory for Docker distribution manifests and convert them to OCI format.
     
