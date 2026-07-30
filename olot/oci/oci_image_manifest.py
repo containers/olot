@@ -153,11 +153,13 @@ def create_oci_image_manifest(
     schemaVersion: int = 2,
     mediaType: str | None = MediaTypes.manifest,
     artifactType: str | None = None,
-    config: ContentDescriptor = empty_config(),
+    config: ContentDescriptor | None = None,
     subject: ContentDescriptor | None = None,
     layers: list[ContentDescriptor] | None = None,
     annotations: Annotations | None = None,
 ) -> OCIImageManifest:
+    if config is None:
+        config = empty_config()
     if layers is None:
         layers = []
     return OCIImageManifest(
