@@ -182,7 +182,7 @@ def get_file_media_type(file_path: os.PathLike) -> str:
     except subprocess.CalledProcessError as e:
         logger.warning("Error occurred while getting MIME type: %s", e)
         return MIMETypes.octet_stream
-    except Exception as e:
+    except OSError as e:
         logger.warning("Unexpected error: %s", e)
         return MIMETypes.octet_stream
 

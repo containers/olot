@@ -77,7 +77,7 @@ def test_oras_scenario(tmp_path):
         except docker.errors.NotFound:
             print("test container terminated")
             break
-        except Exception as e:
+        except docker.errors.DockerException as e:  # other, potentially transient, docker exception
             print(f"Attempt to terminate {attempt + 1} failed: {e}")
         attempt += 1
     if attempt == max_attempts:
@@ -133,7 +133,7 @@ def test_oras_scenario_modelcard(tmp_path):
         except docker.errors.NotFound:
             print("test container terminated")
             break
-        except Exception as e:
+        except docker.errors.DockerException as e:  # other, potentially transient, docker exception
             print(f"Attempt to terminate {attempt + 1} failed: {e}")
         attempt += 1
     if attempt == max_attempts:
