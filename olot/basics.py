@@ -1,46 +1,65 @@
 import datetime
 import logging
 import os
+import tarfile
+from collections.abc import Sequence
 from pathlib import Path
 from pprint import pformat
-import tarfile
-from typing import Dict, List, Sequence
-import typing
 
 from olot.constants import (
     ANNOTATION_LAYER_CONTENT_DIGEST,
-    ANNOTATION_LAYER_CONTENT_TYPE,
     ANNOTATION_LAYER_CONTENT_INLAYERPATH,
     ANNOTATION_LAYER_CONTENT_NAME,
+    ANNOTATION_LAYER_CONTENT_TYPE,
 )
-from olot.dockerdist.convert import check_if_oci_layout_contains_docker_manifests, convert_docker_manifests_to_oci
+from olot.dockerdist.convert import (
+    check_if_oci_layout_contains_docker_manifests,
+    convert_docker_manifests_to_oci,
+)
 from olot.enums import RemoveOriginals
-from olot.modelpack.model_config import Model, ModelConfig, ModelDescriptor, ModelFS, Type
-from olot.oci.oci_config import HistoryItem, OCIManifestConfig
-
-from olot.oci.oci_image_index import Manifest, OCIImageIndex, Platform, read_ocilayout_root_index
-from olot.oci.oci_image_manifest import OCIImageManifest, ContentDescriptor, create_oci_image_manifest
-from olot.oci.oci_image_layout import verify_ocilayout
-from olot.oci.oci_common import MediaTypes
-
-from olot.utils.files import LayerStats, handle_remove, tarball_from_file, targz_from_file
-from olot.utils.types import compute_hash_of_str
-
 from olot.modelpack import const as modelpack_consts
+from olot.modelpack.model_config import (
+    Model,
+    ModelConfig,
+    ModelDescriptor,
+    ModelFS,
+    Type,
+)
+from olot.oci.oci_common import MediaTypes
+from olot.oci.oci_config import HistoryItem, OCIManifestConfig
+from olot.oci.oci_image_index import (
+    Manifest,
+    OCIImageIndex,
+    Platform,
+    read_ocilayout_root_index,
+)
+from olot.oci.oci_image_layout import verify_ocilayout
+from olot.oci.oci_image_manifest import (
+    ContentDescriptor,
+    OCIImageManifest,
+    create_oci_image_manifest,
+)
+from olot.utils.files import (
+    LayerStats,
+    handle_remove,
+    tarball_from_file,
+    targz_from_file,
+)
+from olot.utils.types import compute_hash_of_str
 
 logger = logging.getLogger(__name__)
 
 
 def oci_layers_on_top(
-        ocilayout: typing.Union[str, os.PathLike],
+        ocilayout: str | os.PathLike,
         model_files: Sequence[os.PathLike],
-        modelcard: typing.Union[os.PathLike, None] = None,
+        modelcard: os.PathLike | None = None,
         *,
-        labels: typing.Union[dict[str, str], None] = None,
-        annotations: typing.Union[dict[str, str], None] = None,
-        root_dir: typing.Union[str, os.PathLike, None] = None,
-        remove_originals: typing.Union[RemoveOriginals, None] = None,
-        add_modelpack: typing.Union[bool, None] = None):
+        labels: dict[str, str] | None = None,
+        annotations: dict[str, str] | None = None,
+        root_dir: str | os.PathLike | None = None,
+        remove_originals: RemoveOriginals | None = None,
+        add_modelpack: bool | None = None):
     """
     Add contents to an oci-layout directory as new blob layers
 
@@ -83,9 +102,9 @@ def oci_layers_on_top(
         logger.warning("OCI layout contains Docker distribution manifests, converting them to OCI format")
         convert_docker_manifests_to_oci(ocilayout)
     ocilayout_root_index: OCIImageIndex = read_ocilayout_root_index(ocilayout)
-    ocilayout_indexes: Dict[str, OCIImageIndex] = crawl_ocilayout_indexes(ocilayout, ocilayout_root_index)
-    ocilayout_manifests: Dict[str, OCIImageManifest] = crawl_ocilayout_manifests(ocilayout, ocilayout_indexes, ocilayout_root_index)
-    new_layers: Dict[str, LayerStats] = {} # layer digest : diff_id
+    ocilayout_indexes: dict[str, OCIImageIndex] = crawl_ocilayout_indexes(ocilayout, ocilayout_root_index)
+    ocilayout_manifests: dict[str, OCIImageManifest] = crawl_ocilayout_manifests(ocilayout, ocilayout_indexes, ocilayout_root_index)
+    new_layers: dict[str, LayerStats] = {} # layer digest : diff_id
 
     # check configuration is consistent
     add_modelpack = check_and_sanitize_flag_add_modelpack(add_modelpack, ocilayout_indexes, ocilayout_manifests)
@@ -117,7 +136,7 @@ def oci_layers_on_top(
         if remove_originals == RemoveOriginals.ALL:
             handle_remove(modelcard)
 
-    new_ocilayout_manifests: Dict[str, str] = {}
+    new_ocilayout_manifests: dict[str, str] = {}
     for manifest_hash, manifest in ocilayout_manifests.items():
         logger.debug("manifest_hash: %s, manifest.mediaType: %s", manifest_hash, manifest.mediaType)
         config_sha = manifest.config.digest.removeprefix("sha256:")
@@ -196,12 +215,12 @@ def oci_layers_on_top(
     if add_modelpack:
         modelpack_manifest_hash = add_modelpack_manifest(ocilayout, new_layers)
     
-    new_ocilayout_indexes: Dict[str, str] = {}
+    new_ocilayout_indexes: dict[str, str] = {}
     for index_hash, index in ocilayout_indexes.items():
         logger.debug("index_hash: %s, index.mediaType: %s", index_hash, index.mediaType)
         for m in index.manifests:
             digest = m.digest.removeprefix("sha256:")
-            if digest in new_ocilayout_manifests.keys():
+            if digest in new_ocilayout_manifests:
                 lookup_new_hash = new_ocilayout_manifests[m.digest.removeprefix("sha256:")]
                 logger.info("old manifest %s is now at %s", m.digest, lookup_new_hash)
                 m.digest = "sha256:" + lookup_new_hash
@@ -241,7 +260,7 @@ def oci_layers_on_top(
             entry.size = os.stat(ocilayout / "blobs" / "sha256" / lookup_new_hash).st_size
         elif entry.mediaType == MediaTypes.manifest:
             digest = entry.digest.removeprefix("sha256:")
-            if digest in new_ocilayout_manifests.keys():
+            if digest in new_ocilayout_manifests:
                 lookup_new_hash = new_ocilayout_manifests[entry.digest.removeprefix("sha256:")]
                 logger.info("old manifest %s is now at %s", entry.digest, lookup_new_hash)
                 entry.digest = "sha256:" + lookup_new_hash
@@ -270,12 +289,12 @@ def oci_layers_on_top(
         root_idx_f.write(ocilayout_root_index.model_dump_json(exclude_none=True))
 
 
-def add_modelpack_manifest(ocilayout: Path, new_layers: Dict[str, LayerStats]) -> str:
+def add_modelpack_manifest(ocilayout: Path, new_layers: dict[str, LayerStats]) -> str:
     """add a ModelPack manifest to the oci-layout
     """
     model_config = Model(
         descriptor=ModelDescriptor(name=None), # eventually config and metadata will be provided programmatically
-        modelfs=ModelFS(type=Type.layers, diffIds=list(b.diff_id for b in new_layers.values())),
+        modelfs=ModelFS(type=Type.layers, diffIds=[b.diff_id for b in new_layers.values()]),
         config=ModelConfig(),
     )
     model_config_json = model_config.model_dump_json(exclude_none=True)
@@ -320,7 +339,7 @@ def add_modelpack_manifest(ocilayout: Path, new_layers: Dict[str, LayerStats]) -
     return manifest_hash
 
 
-def check_and_sanitize_flag_add_modelpack(add_modelpack: typing.Union[bool, None], ocilayout_indexes: Dict[str, OCIImageIndex], ocilayout_manifests: Dict[str, OCIImageManifest]) -> bool:
+def check_and_sanitize_flag_add_modelpack(add_modelpack: bool | None, ocilayout_indexes: dict[str, OCIImageIndex], ocilayout_manifests: dict[str, OCIImageManifest]) -> bool:
     """Check and sanitize the add_modelpack flag
     - check if the oci-layout contains an Index manifest for multi-arch, othewise fail: can't add a ModelPack manifest to a single-arch oci-layout
       this is because a single-arch is a single OCI Image Manifest and not introducing an Index; hence, can't add a ModelPack manifest to the non-existing Index which is tagged (`:latest`) by the oci-layout root index
@@ -340,17 +359,17 @@ def check_and_sanitize_flag_add_modelpack(add_modelpack: typing.Union[bool, None
 def check_manifest(manifest: OCIImageManifest, config: OCIManifestConfig):
     """perform some sanity check on the manifests required for additional scenarios of usage
     """
-    ch_count = len(list(x for x in config.history if not x.empty_layer)) if config.history else 0
+    ch_count = len([x for x in config.history if not x.empty_layer]) if config.history else 0
     layers_count = len(manifest.layers)
     if layers_count != ch_count:
         raise ValueError(f"history lists {ch_count} non-empty layers, but there are {layers_count} layers in the image manifest")
 
 
-def crawl_ocilayout_manifests(ocilayout: Path, ocilayout_indexes: Dict[str, OCIImageIndex], ocilayout_root_index: typing.Union[OCIImageIndex, None] = None) -> Dict[str, OCIImageManifest]:
+def crawl_ocilayout_manifests(ocilayout: Path, ocilayout_indexes: dict[str, OCIImageIndex], ocilayout_root_index: OCIImageIndex | None = None) -> dict[str, OCIImageManifest]:
     """crawl Manifests from referred OCI Index(es) and Manifests in the root index of the oci-layout
     """
-    ocilayout_manifests: Dict[str, OCIImageManifest]  = {}
-    for _, mi in ocilayout_indexes.items():
+    ocilayout_manifests: dict[str, OCIImageManifest]  = {}
+    for mi in ocilayout_indexes.values():
         for m in mi.manifests:
             logger.debug("Parsing manifest %s", m)
             if m.mediaType != MediaTypes.manifest:
@@ -369,7 +388,7 @@ def crawl_ocilayout_manifests(ocilayout: Path, ocilayout_indexes: Dict[str, OCII
                 ocilayout_manifests[target_hash] = OCIImageManifest.model_validate_json(ip.read())
 
     # filter out non-runnable OCI Images, like Vendor'd Attestations format, and log it out
-    filtered: Dict[str, OCIImageManifest]  = {}
+    filtered: dict[str, OCIImageManifest]  = {}
     for k, v in ocilayout_manifests.items():
         if v.layers[0].mediaType == "application/vnd.in-toto+json" or v.artifactType == "application/vnd.docker.attestation.manifest.v1+json":
             logger.info("skipping %s as it's an Attestation manifest", k) # not adding this to filtered list of manifests.
@@ -388,8 +407,8 @@ def write_empty_config_in_ocilayoyt(ocilayout: Path):
         f.write("{}")
 
 
-def crawl_ocilayout_indexes(ocilayout: Path, ocilayout_root_index: OCIImageIndex) -> Dict[str, OCIImageIndex] :
-    ocilayout_indexes: Dict[str, OCIImageIndex] = {}
+def crawl_ocilayout_indexes(ocilayout: Path, ocilayout_root_index: OCIImageIndex) -> dict[str, OCIImageIndex] :
+    ocilayout_indexes: dict[str, OCIImageIndex] = {}
     for m in ocilayout_root_index.manifests:
         if m.mediaType == MediaTypes.index:
             target_hash = m.digest.removeprefix("sha256:")
@@ -401,7 +420,7 @@ def crawl_ocilayout_indexes(ocilayout: Path, ocilayout_root_index: OCIImageIndex
 
 def crawl_ocilayout_blobs_to_extract(ocilayout: Path, 
                                      output_path: Path,
-                                     tar_filter_dir: str = "/models") -> List[str]:
+                                     tar_filter_dir: str = "/models") -> list[str]:
     """
     Extract from OCI Image/ModelCar only the contents from a specific directory.
 
@@ -413,7 +432,7 @@ def crawl_ocilayout_blobs_to_extract(ocilayout: Path,
     Returns:
         The list of extracted ML contents from the OCI Image/ModelCar.
     """
-    extracted: List[str] = []
+    extracted: list[str] = []
     tar_filter_dir= tar_filter_dir.lstrip("/")
     blobs_path = ocilayout / "blobs" / "sha256"
     if not os.path.exists(output_path):

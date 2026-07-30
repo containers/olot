@@ -1,5 +1,5 @@
 import json
-from typing import Union
+
 from olot.oci.oci_common import MediaTypes
 from olot.oci.oci_image_index import OCIImageIndex
 from olot.oci.oci_image_manifest import ContentDescriptor, OCIImageManifest
@@ -14,7 +14,7 @@ def get_descriptor_from_manifest(manifest: str) -> ContentDescriptor:
     """    
     size = len(manifest)
     data = json.loads(manifest)
-    model: Union[OCIImageManifest, OCIImageIndex]
+    model: OCIImageManifest | OCIImageIndex
     mediaType = data.get("mediaType")
     if mediaType == MediaTypes.manifest:
         model = OCIImageManifest.model_validate_json(manifest)

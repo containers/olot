@@ -1,10 +1,11 @@
-from typing import Annotated, Any, Dict
-from pydantic import Field
 import hashlib
+from typing import Annotated, Any
+
+from pydantic import Field
 
 NonEmptyString = Annotated[str, Field(..., pattern=r".{1,}")]
-MapStringString = Annotated[Dict[NonEmptyString, str], Field(...)]
-MapStringObject = Annotated[Dict[NonEmptyString, Any], Field(...)]
+MapStringString = Annotated[dict[NonEmptyString, str], Field(...)]
+MapStringObject = Annotated[dict[NonEmptyString, Any], Field(...)]
 
 Int8 = Annotated[int, Field(ge=-128, le=127)]
 Int64 = Annotated[int, Field(ge=-9223372036854776000, le=9223372036854776000)]

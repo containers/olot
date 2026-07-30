@@ -4,12 +4,11 @@ from pathlib import Path
 
 from pydantic import TypeAdapter
 
-from olot.oci.oci_config import OCIManifestConfig
 from olot.oci.oci_common import MediaType
+from olot.oci.oci_config import OCIManifestConfig
 from olot.oci.oci_image_index import OCIImageIndex
 from olot.oci.oci_image_layout import OCIImageLayout
 from olot.oci.oci_image_manifest import OCIImageManifest
-
 from tests.common import sha256_path
 
 

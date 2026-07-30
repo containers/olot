@@ -1,15 +1,23 @@
-from pathlib import Path
+import gzip
+import os
+import shutil
 import subprocess
 import tarfile
 import time
-import gzip
-import shutil
-import os
+from pathlib import Path
 
 import pytest
-from olot.utils.files import get_file_hash, HashingWriter, HashingFileReader, tarball_from_file, targz_from_file, walk_files
 
+from olot.utils.files import (
+    HashingFileReader,
+    HashingWriter,
+    get_file_hash,
+    tarball_from_file,
+    targz_from_file,
+    walk_files,
+)
 from tests.common import get_test_data_path, sample_model_path, sha256_path
+
 
 def test_get_file_hash():
     """As get_file_hash() function is used in other test, making sure it is generating the expected digest for known data
@@ -204,7 +212,7 @@ def test_targz_from_file(tmp_path):
     assert found
 
     uncompressed_tar = write_dest / "uncompressed.tar"
-    with gzip.open(write_dest / postcomp_chksum, "rb") as g_in:
+    with gzip.open(write_dest / postcomp_chksum, "rb") as g_in:   # noqa: SIM117
         with open(uncompressed_tar, "wb") as f_out:
             shutil.copyfileobj(g_in, f_out)
     for file in tmp_path.rglob('*'):

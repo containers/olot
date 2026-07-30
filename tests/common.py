@@ -1,8 +1,10 @@
-from pathlib import Path
-import tarfile
 import gzip
 import shutil
+import tarfile
+from pathlib import Path
+
 from olot.utils.files import HashingWriter, get_file_hash, tar_filter_fn
+
 
 def get_test_path() -> Path: # this must be inside tests/common.py file, ie just under tests/ directory of the repo.
     return Path(__file__).parent

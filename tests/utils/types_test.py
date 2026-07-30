@@ -1,5 +1,6 @@
 from olot.utils.types import compute_hash_of_str
 
+
 def test_compute_hash_of_str():
     """Basis compute_hash_of_str() fn testing
     """

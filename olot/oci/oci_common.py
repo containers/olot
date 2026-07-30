@@ -1,7 +1,7 @@
 
-from typing import Annotated, List
-from pydantic import AnyUrl, Field
+from typing import Annotated
 
+from pydantic import AnyUrl, Field
 
 MediaType = Annotated[str, Field(
         ...,
@@ -36,7 +36,7 @@ Digest = Annotated[str, Field(
     )]
 
 
-Urls = Annotated[List[AnyUrl],Field(
+Urls = Annotated[list[AnyUrl],Field(
         ..., description='a list of urls from which this object may be downloaded'
     )]
 

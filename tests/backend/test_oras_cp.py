@@ -2,14 +2,17 @@ import os
 import shutil
 import subprocess
 import time
-import docker # type: ignore
 from pathlib import Path
+
+import docker  # type: ignore
 import pytest
+
 from olot.backend.oras_cp import is_oras, oras_pull, oras_push
 from olot.basics import oci_layers_on_top
-from olot.oci.oci_image_layout import verify_ocilayout
 from olot.oci.oci_image_index import read_ocilayout_root_index
+from olot.oci.oci_image_layout import verify_ocilayout
 from tests.common import sample_model_path
+
 
 @pytest.mark.e2e_oras
 def test_is_oras():
@@ -74,7 +77,7 @@ def test_oras_scenario(tmp_path):
         except docker.errors.NotFound:
             print("test container terminated")
             break
-        except Exception as e:
+        except docker.errors.DockerException as e:  # other, potentially transient, docker exception
             print(f"Attempt to terminate {attempt + 1} failed: {e}")
         attempt += 1
     if attempt == max_attempts:
@@ -130,7 +133,7 @@ def test_oras_scenario_modelcard(tmp_path):
         except docker.errors.NotFound:
             print("test container terminated")
             break
-        except Exception as e:
+        except docker.errors.DockerException as e:  # other, potentially transient, docker exception
             print(f"Attempt to terminate {attempt + 1} failed: {e}")
         attempt += 1
     if attempt == max_attempts:

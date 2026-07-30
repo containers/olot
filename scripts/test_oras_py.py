@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+# uv run python scripts/test_oras_py.py
 import argparse
 import shutil
 import tempfile

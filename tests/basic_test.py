@@ -1,26 +1,32 @@
+import logging
 import os
+import shutil
 import tarfile
 from pathlib import Path
-from olot.utils.files import get_file_hash
-import pytest
-import shutil
-from typing import Dict
-import logging
 
-from olot.basics import RemoveOriginals, crawl_ocilayout_blobs_to_extract, crawl_ocilayout_indexes, crawl_ocilayout_manifests, oci_layers_on_top, write_empty_config_in_ocilayoyt
+import pytest
+
+from olot.basics import (
+    RemoveOriginals,
+    crawl_ocilayout_blobs_to_extract,
+    crawl_ocilayout_indexes,
+    crawl_ocilayout_manifests,
+    oci_layers_on_top,
+    write_empty_config_in_ocilayoyt,
+)
 from olot.constants import (
     ANNOTATION_LAYER_CONTENT_DIGEST,
-    ANNOTATION_LAYER_CONTENT_TYPE,
     ANNOTATION_LAYER_CONTENT_INLAYERPATH,
     ANNOTATION_LAYER_CONTENT_NAME,
+    ANNOTATION_LAYER_CONTENT_TYPE,
 )
+from olot.modelpack import const as modelpack_consts
 from olot.oci.oci_config import OCIManifestConfig
 from olot.oci.oci_image_index import OCIImageIndex, read_ocilayout_root_index
 from olot.oci.oci_image_manifest import OCIImageManifest
+from olot.utils.files import get_file_hash
 from olot.utils.types import compute_hash_of_str
-from tests.common import sample_model_path, get_test_data_path
-
-from olot.modelpack import const as modelpack_consts
+from tests.common import get_test_data_path, sample_model_path
 
 
 def test_remove_originals():
@@ -32,18 +38,18 @@ def test_crawl_ocilayout_indexes():
     """Crawl for indexes models (the index content itself, not a manifest ref) in given oci-layout
     """
     ocilayout3_path = Path(__file__).parent / "data" / "ocilayout3"
-    mut: Dict[str, OCIImageIndex] = crawl_ocilayout_indexes(ocilayout3_path, read_ocilayout_root_index(ocilayout3_path))
+    mut: dict[str, OCIImageIndex] = crawl_ocilayout_indexes(ocilayout3_path, read_ocilayout_root_index(ocilayout3_path))
     assert len(mut.keys()) == 1
-    assert "d437889e826ecce2116ac711469bd09b1bb3c64d45055cbf23a6f8f3db223b8b" in mut.keys()
+    assert "d437889e826ecce2116ac711469bd09b1bb3c64d45055cbf23a6f8f3db223b8b" in mut
     index0 = mut["d437889e826ecce2116ac711469bd09b1bb3c64d45055cbf23a6f8f3db223b8b"]
     assert index0.mediaType == "application/vnd.oci.image.index.v1+json"
     assert len(index0.manifests) == 2
 
     # I will redo the same fo ocilayout2 which is simplified from ocilayout3 as a sanity check
     ocilayout2_path = Path(__file__).parent / "data" / "ocilayout2"
-    mut: Dict[str, OCIImageIndex] = crawl_ocilayout_indexes(ocilayout2_path, read_ocilayout_root_index(ocilayout2_path))
+    mut: dict[str, OCIImageIndex] = crawl_ocilayout_indexes(ocilayout2_path, read_ocilayout_root_index(ocilayout2_path))
     assert len(mut.keys()) == 1
-    assert "d437889e826ecce2116ac711469bd09b1bb3c64d45055cbf23a6f8f3db223b8b" in mut.keys()
+    assert "d437889e826ecce2116ac711469bd09b1bb3c64d45055cbf23a6f8f3db223b8b" in mut
     index0 = mut["d437889e826ecce2116ac711469bd09b1bb3c64d45055cbf23a6f8f3db223b8b"]
     assert index0.mediaType == "application/vnd.oci.image.index.v1+json"
     assert len(index0.manifests) == 2
@@ -54,11 +60,11 @@ def test_crawl_ocilayout_manifests():
     """
     ocilayout3_path = Path(__file__).parent / "data" / "ocilayout3"
     ocilayout_root_index = read_ocilayout_root_index(ocilayout3_path)
-    ocilayout_indexes: Dict[str, OCIImageIndex] = crawl_ocilayout_indexes(ocilayout3_path, ocilayout_root_index)
-    mut: Dict[str, OCIImageManifest] = crawl_ocilayout_manifests(ocilayout3_path, ocilayout_indexes, ocilayout_root_index)
+    ocilayout_indexes: dict[str, OCIImageIndex] = crawl_ocilayout_indexes(ocilayout3_path, ocilayout_root_index)
+    mut: dict[str, OCIImageManifest] = crawl_ocilayout_manifests(ocilayout3_path, ocilayout_indexes, ocilayout_root_index)
 
     assert len(mut.keys()) == 2
-    assert "c23ed8b7e30f5edd2417e1dd99fedad4445f3e835edb58760b2f83f2c0517878" in mut.keys()
+    assert "c23ed8b7e30f5edd2417e1dd99fedad4445f3e835edb58760b2f83f2c0517878" in mut
     image0 = mut["c23ed8b7e30f5edd2417e1dd99fedad4445f3e835edb58760b2f83f2c0517878"]
     assert image0.mediaType == "application/vnd.oci.image.manifest.v1+json"
     assert len(image0.layers) == 1
@@ -207,15 +213,15 @@ def test_oci_layers_on_top_single_manifest_and_check_annotations(tmp_path: Path)
     oci_layers_on_top(target_ocilayout, models, modelcard)
 
     ocilayout_root_index: OCIImageIndex = read_ocilayout_root_index(target_ocilayout)
-    ocilayout_indexes: Dict[str, OCIImageIndex] = crawl_ocilayout_indexes(target_ocilayout, ocilayout_root_index)
-    ocilayout_manifests: Dict[str, OCIImageManifest] = crawl_ocilayout_manifests(target_ocilayout, ocilayout_indexes, ocilayout_root_index)
+    ocilayout_indexes: dict[str, OCIImageIndex] = crawl_ocilayout_indexes(target_ocilayout, ocilayout_root_index)
+    ocilayout_manifests: dict[str, OCIImageManifest] = crawl_ocilayout_manifests(target_ocilayout, ocilayout_indexes, ocilayout_root_index)
     assert len(ocilayout_manifests) == 1
     manifest0: OCIImageManifest = next(iter(ocilayout_manifests.values()))
     assert len(manifest0.layers) == 1 + len(models) + 1 # original value (only 1 layer in original oci-layout) + now added model files + now added modelcarD
 
     for layer in manifest0.layers[1:]: # skip original first layer in original oci-layout
         assert layer.annotations
-        assert "org.opencontainers.image.title" in layer.annotations.keys()
+        assert "org.opencontainers.image.title" in layer.annotations
     assert manifest0.layers[1].annotations
     assert manifest0.layers[1].annotations["org.opencontainers.image.title"] == "model.joblib"
     assert manifest0.layers[2].annotations
@@ -223,7 +229,7 @@ def test_oci_layers_on_top_single_manifest_and_check_annotations(tmp_path: Path)
     # identify the ModelCarD layer by means of annotation(s) on the layer
     assert manifest0.layers[3].annotations
     assert manifest0.layers[3].annotations["org.opencontainers.image.title"] == "README.md"
-    assert "io.opendatahub.modelcar.layer.type" in manifest0.layers[3].annotations.keys()
+    assert "io.opendatahub.modelcar.layer.type" in manifest0.layers[3].annotations
     assert manifest0.layers[3].annotations["io.opendatahub.modelcar.layer.type"] == "modelcard"
 
     # identify the ModelCarD by means of annotation from the Image Manifest
@@ -237,7 +243,7 @@ def test_oci_layers_on_top_single_manifest_and_check_annotations(tmp_path: Path)
         mc = OCIManifestConfig.model_validate_json(f.read())
         assert mc.history
         assert len(mc.history) == 5 # check we preserved also previous history, 2 elements, + 3 new history items for the 3 new layers
-        assert len(list(x for x in mc.history if not x.empty_layer)) == len(manifest0.layers)
+        assert len([x for x in mc.history if not x.empty_layer]) == len(manifest0.layers)
 
 
 def test_add_modelpack_manifest_using_ocilayout3(tmp_path: Path):
@@ -262,9 +268,9 @@ def test_add_modelpack_manifest_using_ocilayout3(tmp_path: Path):
 
     ocilayout_root_index = read_ocilayout_root_index(target_ocilayout)
     assert len(ocilayout_root_index.manifests) == 3
-    ocilayout_indexes: Dict[str, OCIImageIndex] = crawl_ocilayout_indexes(target_ocilayout, ocilayout_root_index)
+    ocilayout_indexes: dict[str, OCIImageIndex] = crawl_ocilayout_indexes(target_ocilayout, ocilayout_root_index)
     assert len(ocilayout_indexes) == 1
-    ocilayout_manifests: Dict[str, OCIImageManifest] = crawl_ocilayout_manifests(target_ocilayout, ocilayout_indexes, ocilayout_root_index)
+    ocilayout_manifests: dict[str, OCIImageManifest] = crawl_ocilayout_manifests(target_ocilayout, ocilayout_indexes, ocilayout_root_index)
     assert len(ocilayout_manifests) == 2
 
     # add modelpack manifest
@@ -321,9 +327,9 @@ def test_add_modelpack_manifest_using_ocilayout2(tmp_path: Path):
 
     ocilayout_root_index = read_ocilayout_root_index(target_ocilayout)
     assert len(ocilayout_root_index.manifests) == 1
-    ocilayout_indexes: Dict[str, OCIImageIndex] = crawl_ocilayout_indexes(target_ocilayout, ocilayout_root_index)
+    ocilayout_indexes: dict[str, OCIImageIndex] = crawl_ocilayout_indexes(target_ocilayout, ocilayout_root_index)
     assert len(ocilayout_indexes) == 1
-    ocilayout_manifests: Dict[str, OCIImageManifest] = crawl_ocilayout_manifests(target_ocilayout, ocilayout_indexes, ocilayout_root_index)
+    ocilayout_manifests: dict[str, OCIImageManifest] = crawl_ocilayout_manifests(target_ocilayout, ocilayout_indexes, ocilayout_root_index)
     assert len(ocilayout_manifests) == 2
 
     # add modelpack manifest
@@ -381,9 +387,9 @@ def test_add_modelpack_manifest_using_ocilayout5(tmp_path: Path):
 
     ocilayout_root_index = read_ocilayout_root_index(target_ocilayout)
     assert len(ocilayout_root_index.manifests) == 1
-    ocilayout_indexes: Dict[str, OCIImageIndex] = crawl_ocilayout_indexes(target_ocilayout, ocilayout_root_index)
+    ocilayout_indexes: dict[str, OCIImageIndex] = crawl_ocilayout_indexes(target_ocilayout, ocilayout_root_index)
     assert len(ocilayout_indexes) == 0
-    ocilayout_manifests: Dict[str, OCIImageManifest] = crawl_ocilayout_manifests(target_ocilayout, ocilayout_indexes, ocilayout_root_index)
+    ocilayout_manifests: dict[str, OCIImageManifest] = crawl_ocilayout_manifests(target_ocilayout, ocilayout_indexes, ocilayout_root_index)
     assert len(ocilayout_manifests) == 1
 
     # attempt to add modelpack manifest
@@ -454,9 +460,9 @@ def test_add_labels_and_annotations(tmp_path: Path):
     oci_layers_on_top(target_ocilayout, models, modelcard, labels={"a": "b"}, annotations={"c": "d"})
     ocilayout_root_index = read_ocilayout_root_index(target_ocilayout)
     assert len(ocilayout_root_index.manifests) == 1
-    ocilayout_indexes: Dict[str, OCIImageIndex] = crawl_ocilayout_indexes(target_ocilayout, ocilayout_root_index)
+    ocilayout_indexes: dict[str, OCIImageIndex] = crawl_ocilayout_indexes(target_ocilayout, ocilayout_root_index)
     assert len(ocilayout_indexes) == 0
-    ocilayout_manifests: Dict[str, OCIImageManifest] = crawl_ocilayout_manifests(target_ocilayout, ocilayout_indexes, ocilayout_root_index)
+    ocilayout_manifests: dict[str, OCIImageManifest] = crawl_ocilayout_manifests(target_ocilayout, ocilayout_indexes, ocilayout_root_index)
     assert len(ocilayout_manifests) == 1
     manifest0: OCIImageManifest = next(iter(ocilayout_manifests.values()))
     assert manifest0.annotations
@@ -522,8 +528,8 @@ def test_oci_layers_on_top_nested_files(tmp_path: Path, use_root_dir):
 
     # Extract archive paths from every new layer
     ocilayout_root_index = read_ocilayout_root_index(target_ocilayout)
-    ocilayout_indexes: Dict[str, OCIImageIndex] = crawl_ocilayout_indexes(target_ocilayout, ocilayout_root_index)
-    ocilayout_manifests: Dict[str, OCIImageManifest] = crawl_ocilayout_manifests(target_ocilayout, ocilayout_indexes, ocilayout_root_index)
+    ocilayout_indexes: dict[str, OCIImageIndex] = crawl_ocilayout_indexes(target_ocilayout, ocilayout_root_index)
+    ocilayout_manifests: dict[str, OCIImageManifest] = crawl_ocilayout_manifests(target_ocilayout, ocilayout_indexes, ocilayout_root_index)
     manifest0: OCIImageManifest = next(iter(ocilayout_manifests.values()))
     new_layers = manifest0.layers[1:]  # skip the 1 original base layer
 

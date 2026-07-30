@@ -2,12 +2,12 @@ import json
 import logging
 import os
 from pathlib import Path
-from typing import Dict
+
+from olot.oci.oci_common import MediaTypes
 from olot.oci.oci_config import OCIManifestConfig
 from olot.oci.oci_image_index import OCIImageIndex
+from olot.oci.oci_image_manifest import ContentDescriptor, OCIImageManifest
 from olot.utils.types import compute_hash_of_str
-from olot.oci.oci_image_manifest import OCIImageManifest, ContentDescriptor
-from olot.oci.oci_common import MediaTypes
 
 DOCKER_LIST_V2 = "application/vnd.docker.distribution.manifest.list.v2+json"
 DOCKER_MANIFEST_V2 = "application/vnd.docker.distribution.manifest.v2+json"
@@ -29,12 +29,12 @@ def check_if_oci_layout_contains_docker_manifests(directory: Path) -> bool:
                 data = json.load(f)
                 if data.get("mediaType") == DOCKER_MANIFEST_V2:
                     return True
-        except Exception:
+        except (json.JSONDecodeError, UnicodeDecodeError, OSError):  # not a manifest
             continue
     return False
 
 
-def convert_docker_manifests_to_oci(directory: Path) -> Dict[str, str]:
+def convert_docker_manifests_to_oci(directory: Path) -> dict[str, str]:
     """
     Scan directory for Docker distribution manifests and convert them to OCI format.
     
@@ -56,7 +56,7 @@ def convert_docker_manifests_to_oci(directory: Path) -> Dict[str, str]:
                 data = json.load(f)
                 if data.get("mediaType") == DOCKER_MANIFEST_V2:
                     img_manifest_files.append(blob)
-        except Exception:
+        except (json.JSONDecodeError, UnicodeDecodeError, OSError):  # not a manifest
             continue
     
     if not img_manifest_files:
@@ -71,7 +71,7 @@ def convert_docker_manifests_to_oci(directory: Path) -> Dict[str, str]:
                 data = json.load(f)
                 if data.get("mediaType") == DOCKER_LIST_V2:
                     list_manifest_files.append(blob)
-        except Exception:
+        except (json.JSONDecodeError, UnicodeDecodeError, OSError):  # not a manifest
             continue
     for blob_file in list_manifest_files:
         with open(blob_file, 'r') as file_handle:

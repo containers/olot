@@ -2,14 +2,17 @@ import os
 import shutil
 import subprocess
 import time
-import docker # type: ignore
 from pathlib import Path
+
+import docker  # type: ignore
 import pytest
-from olot.backend.skopeo import is_skopeo, skopeo_pull, skopeo_push, skopeo_inspect
+
+from olot.backend.skopeo import is_skopeo, skopeo_inspect, skopeo_pull, skopeo_push
 from olot.basics import oci_layers_on_top
-from olot.oci.oci_image_layout import verify_ocilayout
 from olot.oci.oci_image_index import read_ocilayout_root_index
+from olot.oci.oci_image_layout import verify_ocilayout
 from tests.common import get_test_data_path, sample_model_path
+
 
 @pytest.mark.e2e_skopeo
 def test_is_skopeo():
@@ -53,8 +56,7 @@ def test_skopeo_scenario(tmp_path):
     subprocess.run(["skopeo","list-tags","--tls-verify=false","docker://localhost:5001/nstestorg/modelcar"], check=True)
 
     # copy from Container Registry to Docker daemon for local running the modelcar as-is
-    result = subprocess.run("skopeo inspect --tls-verify=false --raw docker://localhost:5001/nstestorg/modelcar | jq -r '.manifests[] | select(.platform.architecture == \"amd64\") | .digest'", shell=True, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    assert result.returncode == 0
+    result = subprocess.run("skopeo inspect --tls-verify=false --raw docker://localhost:5001/nstestorg/modelcar | jq -r '.manifests[] | select(.platform.architecture == \"amd64\") | .digest'", shell=True, text=True, capture_output=True, check=True)
     digest = result.stdout.strip()
     print(digest)
     # use by convention the linux/amd64
@@ -79,7 +81,7 @@ def test_skopeo_scenario(tmp_path):
         except docker.errors.NotFound:
             print("test container terminated")
             break
-        except Exception as e:
+        except docker.errors.DockerException as e:  # other, potentially transient, docker exception
             print(f"Attempt to terminate {attempt + 1} failed: {e}")
         attempt += 1
     if attempt == max_attempts:
@@ -108,8 +110,7 @@ def test_skopeo_scenario_modelcard(tmp_path):
     subprocess.run(["skopeo","list-tags","--tls-verify=false","docker://localhost:5001/nstestorg/modelcar"], check=True)
 
     # copy from Container Registry to Docker daemon for local running the modelcar as-is
-    result = subprocess.run("skopeo inspect --tls-verify=false --raw docker://localhost:5001/nstestorg/modelcar | jq -r '.manifests[] | select(.platform.architecture == \"amd64\") | .digest'", shell=True, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    assert result.returncode == 0
+    result = subprocess.run("skopeo inspect --tls-verify=false --raw docker://localhost:5001/nstestorg/modelcar | jq -r '.manifests[] | select(.platform.architecture == \"amd64\") | .digest'", shell=True, text=True, capture_output=True, check=True)
     digest = result.stdout.strip()
     print(digest)
     # use by convention the linux/amd64
@@ -141,7 +142,7 @@ def test_skopeo_scenario_modelcard(tmp_path):
         except docker.errors.NotFound:
             print("test container terminated")
             break
-        except Exception as e:
+        except docker.errors.DockerException as e:  # other, potentially transient, docker exception
             print(f"Attempt to terminate {attempt + 1} failed: {e}")
         attempt += 1
     if attempt == max_attempts:
