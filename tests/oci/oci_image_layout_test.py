@@ -11,5 +11,5 @@ def test_verify_ocilayout():
     verify_ocilayout(data_path / "ocilayout1")
     verify_ocilayout(data_path / "ocilayout2")
     verify_ocilayout(data_path / "ocilayout3")
-    with pytest.raises(Exception):
+    with pytest.raises((FileNotFoundError, ValueError)):
         verify_ocilayout(data_path)
