@@ -197,7 +197,7 @@ class OCIImageIndex(BaseModel):
 
 def read_ocilayout_root_index(ocilayout: Path) -> OCIImageIndex:
     ocilayout_root_index = None
-    with open(ocilayout / "index.json", "r") as f:
+    with open(ocilayout / "index.json", "r") as f:  # noqa: PLW1514
         ocilayout_root_index = OCIImageIndex.model_validate_json(f.read())
     return ocilayout_root_index
 

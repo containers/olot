@@ -89,11 +89,11 @@ def test_full_artifact(tmp_path):
     manifest_json = manifest.model_dump_json(indent=2, exclude_none=True)
     manifest_SHA = compute_hash_of_str(manifest_json)
     manifest_blob_path = blobs_path / manifest_SHA
-    with open(manifest_blob_path, "w") as f:
+    with open(manifest_blob_path, "w", encoding="utf-8") as f:
         f.write(manifest.model_dump_json(indent=2, exclude_none=True))
     
     layout = OCIImageLayout(imageLayoutVersion="1.0.0")
-    with open(ocilayout_path / "oci-layout", "w") as f:
+    with open(ocilayout_path / "oci-layout", "w", encoding="utf-8") as f:
         f.write(layout.model_dump_json(indent=2, exclude_none=True))
 
     index = OCIImageIndex(schemaVersion=2,
@@ -103,7 +103,7 @@ def test_full_artifact(tmp_path):
                                        digest="sha256:"+manifest_SHA,
                                        annotations={"org.opencontainers.image.ref.name": "latest"})
                           ])
-    with open(ocilayout_path / "index.json", "w") as f:
+    with open(ocilayout_path / "index.json", "w", encoding="utf-8") as f:
         f.write(index.model_dump_json(indent=2, exclude_none=True))
 
     # now let's use oras-copy to transfer from oci-layout to another oci-layout (instead of a OCI registry)

@@ -19,10 +19,10 @@ def test_cli_root_dir_preserves_nested_paths(tmp_path: Path):
 
     model_dir = tmp_path / "my-model"
     model_dir.mkdir()
-    (model_dir / "config.json").write_text('{"top": true}')
+    (model_dir / "config.json").write_text('{"top": true}', encoding="utf-8")
     inference_dir = model_dir / "inference"
     inference_dir.mkdir()
-    (inference_dir / "config.json").write_text('{"inference_only": true}')
+    (inference_dir / "config.json").write_text('{"inference_only": true}', encoding="utf-8")
 
     runner = CliRunner()
     result = runner.invoke(
@@ -60,10 +60,10 @@ def test_cli_without_root_dir_flattens_paths(tmp_path: Path):
 
     model_dir = tmp_path / "my-model"
     model_dir.mkdir()
-    (model_dir / "config.json").write_text('{"top": true}')
+    (model_dir / "config.json").write_text('{"top": true}', encoding="utf-8")
     inference_dir = model_dir / "inference"
     inference_dir.mkdir()
-    (inference_dir / "config.json").write_text('{"inference_only": true}')
+    (inference_dir / "config.json").write_text('{"inference_only": true}', encoding="utf-8")
 
     runner = CliRunner()
     result = runner.invoke(
