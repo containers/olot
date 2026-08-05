@@ -141,7 +141,7 @@ def oci_layers_on_top(
         logger.debug("manifest_hash: %s, manifest.mediaType: %s", manifest_hash, manifest.mediaType)
         config_sha = manifest.config.digest.removeprefix("sha256:")
         mc = None
-        with open(ocilayout / "blobs" / "sha256" / config_sha, "r") as cf:
+        with open(ocilayout / "blobs" / "sha256" / config_sha, "r") as cf:  # noqa: PLW1514
             mc = OCIManifestConfig.model_validate_json(cf.read())
             if mc.history is None:
                 mc.history = []
@@ -186,7 +186,7 @@ def oci_layers_on_top(
                 mc.config.Labels.update(labels)
         # save the OCI Image Config
         mc_json = mc.model_dump_json(exclude_none=True)
-        with open(ocilayout / "blobs" / "sha256" / config_sha, "w") as cf:
+        with open(ocilayout / "blobs" / "sha256" / config_sha, "w", encoding="utf-8") as cf:
             cf.write(mc_json)
         mc_json_hash = compute_hash_of_str(mc_json)
         os.rename(ocilayout / "blobs" / "sha256" / config_sha, ocilayout / "blobs" / "sha256" / mc_json_hash)
@@ -204,7 +204,7 @@ def oci_layers_on_top(
         check_manifest(manifest, mc)
         # save the OCI Image Manifest
         manifest_json = manifest.model_dump_json(exclude_none=True)
-        with open(ocilayout / "blobs" / "sha256" / manifest_hash, "w") as cf:
+        with open(ocilayout / "blobs" / "sha256" / manifest_hash, "w", encoding="utf-8") as cf:
             cf.write(manifest_json)
         manifest_json_hash = compute_hash_of_str(manifest_json)
         os.rename(ocilayout / "blobs" / "sha256" / manifest_hash, ocilayout / "blobs" / "sha256" / manifest_json_hash)
@@ -244,7 +244,7 @@ def oci_layers_on_top(
                     annotations={"io.opendatahub.author": "olot", "io.opendatahub.modelcar.manifest.type":"modelpack"},
                 ))
         index_json = index.model_dump_json(exclude_none=True)
-        with open(ocilayout / "blobs" / "sha256" / index_hash, "w") as idxf:
+        with open(ocilayout / "blobs" / "sha256" / index_hash, "w", encoding="utf-8") as idxf:
             idxf.write(index_json)
         index_json_hash = compute_hash_of_str(index_json)
         os.rename(ocilayout / "blobs" / "sha256" / index_hash, ocilayout / "blobs" / "sha256" / index_json_hash)
@@ -285,7 +285,7 @@ def oci_layers_on_top(
                 ),
                 annotations={"io.opendatahub.author": "olot", "io.opendatahub.modelcar.manifest.type":"modelpack"},
             ))
-    with open(ocilayout / "index.json", "w") as root_idx_f:
+    with open(ocilayout / "index.json", "w", encoding="utf-8") as root_idx_f:
         root_idx_f.write(ocilayout_root_index.model_dump_json(exclude_none=True))
 
 
@@ -299,7 +299,7 @@ def add_modelpack_manifest(ocilayout: Path, new_layers: dict[str, LayerStats]) -
     )
     model_config_json = model_config.model_dump_json(exclude_none=True)
     model_config_hash = compute_hash_of_str(model_config_json)
-    with open(ocilayout / "blobs" / "sha256" / model_config_hash, "w") as mpcf:
+    with open(ocilayout / "blobs" / "sha256" / model_config_hash, "w", encoding="utf-8") as mpcf:
         mpcf.write(model_config_json)
     cds = []
     for layer in new_layers.values():
@@ -334,7 +334,7 @@ def add_modelpack_manifest(ocilayout: Path, new_layers: dict[str, LayerStats]) -
     )
     manifest_json = manifest.model_dump_json(exclude_none=True)
     manifest_hash = compute_hash_of_str(manifest_json)
-    with open(ocilayout / "blobs" / "sha256" / manifest_hash, "w") as mf:
+    with open(ocilayout / "blobs" / "sha256" / manifest_hash, "w", encoding="utf-8") as mf:
         mf.write(manifest_json)
     return manifest_hash
 
@@ -377,14 +377,14 @@ def crawl_ocilayout_manifests(ocilayout: Path, ocilayout_indexes: dict[str, OCII
             target_hash = m.digest.removeprefix("sha256:")
             logger.debug("target_hash %s", target_hash)
             manifest_path = ocilayout / "blobs" / "sha256" / target_hash
-            with open(manifest_path, "r") as ip:
+            with open(manifest_path, "r") as ip:  # noqa: PLW1514
                 ocilayout_manifests[target_hash] = OCIImageManifest.model_validate_json(ip.read())
     for m in ocilayout_root_index.manifests if ocilayout_root_index is not None else []:
         if m.mediaType == MediaTypes.manifest:
             target_hash = m.digest.removeprefix("sha256:")
             logger.debug("Lookup remainder manifest from ocilayout_root_index having target_hash %s", target_hash)
             manifest_path = ocilayout / "blobs" / "sha256" / target_hash
-            with open(manifest_path, "r") as ip:
+            with open(manifest_path, "r") as ip:  # noqa: PLW1514
                 ocilayout_manifests[target_hash] = OCIImageManifest.model_validate_json(ip.read())
 
     # filter out non-runnable OCI Images, like Vendor'd Attestations format, and log it out
@@ -403,7 +403,7 @@ def write_empty_config_in_ocilayoyt(ocilayout: Path):
     """
     blobs_path = ocilayout / "blobs" / "sha256"
     blobs_path.mkdir(parents=True, exist_ok=True)
-    with open(blobs_path / "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a", 'w') as f:
+    with open(blobs_path / "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a", 'w', encoding="utf-8") as f:
         f.write("{}")
 
 
@@ -413,7 +413,7 @@ def crawl_ocilayout_indexes(ocilayout: Path, ocilayout_root_index: OCIImageIndex
         if m.mediaType == MediaTypes.index:
             target_hash = m.digest.removeprefix("sha256:")
             index_path = ocilayout / "blobs" / "sha256" / target_hash
-            with open(index_path, "r") as ip:
+            with open(index_path, "r") as ip:  # noqa: PLW1514
                 ocilayout_indexes[target_hash] = OCIImageIndex.model_validate_json(ip.read())
     return ocilayout_indexes
 
@@ -446,7 +446,7 @@ def crawl_ocilayout_blobs_to_extract(ocilayout: Path,
         raise ValueError("Can only extract from ModelCar Image manifests")
     target_hash = manifest0.digest.removeprefix("sha256:")
     manifest_path = blobs_path / target_hash
-    with open(manifest_path, "r") as ip:
+    with open(manifest_path, "r") as ip:  # noqa: PLW1514
         image_manifest = OCIImageManifest.model_validate_json(ip.read())
     for layer in image_manifest.layers:
         if layer.mediaType == MediaTypes.layer or layer.mediaType == MediaTypes.layer_gzip:

@@ -183,7 +183,7 @@ def test_write_empty_oci_config(tmp_path: Path):
 
     empty_config_path = oci_layout_path / "blobs" / "sha256" / "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
     assert empty_config_path.exists()
-    with open(empty_config_path, "r") as f:
+    with open(empty_config_path, "r") as f:  # noqa: PLW1514
         actual = compute_hash_of_str(f.read())
     assert actual == "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
 
@@ -239,7 +239,7 @@ def test_oci_layers_on_top_single_manifest_and_check_annotations(tmp_path: Path)
 
     assert len(manifest0.layers) == 4
     # check manifest.config.history contains the appropriate length
-    with open(target_ocilayout / "blobs" / "sha256" / manifest0.config.digest.removeprefix("sha256:"), "r") as f:
+    with open(target_ocilayout / "blobs" / "sha256" / manifest0.config.digest.removeprefix("sha256:"), "r") as f:  # noqa: PLW1514
         mc = OCIManifestConfig.model_validate_json(f.read())
         assert mc.history
         assert len(mc.history) == 5 # check we preserved also previous history, 2 elements, + 3 new history items for the 3 new layers
@@ -468,7 +468,7 @@ def test_add_labels_and_annotations(tmp_path: Path):
     assert manifest0.annotations
     assert manifest0.annotations["c"] == "d"
     config_digest = manifest0.config.digest.removeprefix("sha256:")
-    with open(target_ocilayout / "blobs" / "sha256" / config_digest, "r") as f:
+    with open(target_ocilayout / "blobs" / "sha256" / config_digest, "r") as f:  # noqa: PLW1514
         mc = OCIManifestConfig.model_validate_json(f.read())
         assert mc.config
         assert mc.config.Labels
@@ -508,12 +508,12 @@ def test_oci_layers_on_top_nested_files(tmp_path: Path, use_root_dir):
     # Create a model dir with nested subdirectories and duplicate filenames
     model_dir = tmp_path / "my-model"
     model_dir.mkdir()
-    (model_dir / "config.json").write_text('{"top": true}')
+    (model_dir / "config.json").write_text('{"top": true}', encoding="utf-8")
     (model_dir / "model.onnx").write_bytes(os.urandom(64))
     onnx_dir = model_dir / "onnx"
     onnx_dir.mkdir()
     (onnx_dir / "model.onnx").write_bytes(os.urandom(128))
-    (onnx_dir / "config.json").write_text('{"onnx": true}')
+    (onnx_dir / "config.json").write_text('{"onnx": true}', encoding="utf-8")
     int8_dir = model_dir / "quantized" / "int8"
     int8_dir.mkdir(parents=True)
     (int8_dir / "model.onnx").write_bytes(os.urandom(96))

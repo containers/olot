@@ -14,5 +14,5 @@ Annotations = Annotated[MapStringString, Field()]
 
 def compute_hash_of_str(content: str) -> str:
     h = hashlib.sha256()
-    h.update(content.encode())
+    h.update(content.encode("utf-8"))
     return h.hexdigest()

@@ -23,7 +23,7 @@ class OCIImageLayout(BaseModel):
         use_enum_values = True
 
 def verify_ocilayout(ocilayout: Path):
-    with open(ocilayout / "oci-layout", "r") as f:
+    with open(ocilayout / "oci-layout", "r") as f:  # noqa: PLW1514
         m = OCIImageLayout.model_validate_json(f.read())
         if not m.imageLayoutVersion == ImageLayoutVersion.field_1_0_0.value:
             raise ValueError(f"Unexpected ocilayout in {ocilayout}")
