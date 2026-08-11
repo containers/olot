@@ -92,7 +92,11 @@ def convert_docker_manifests_to_oci(directory: Path) -> dict[str, str]:
 
     index = OCIImageIndex.model_validate_json((directory / "index.json").read_text())
     for manifest in index.manifests:
-        new_digest = converted[manifest.digest.removeprefix("sha256:")]
+        digest_hash = manifest.digest.removeprefix("sha256:")
+        if digest_hash not in converted:
+            # Already OCI (e.g. a prior conversion left orphan Docker blobs on disk).
+            continue
+        new_digest = converted[digest_hash]
         manifest.digest = "sha256:" + new_digest
         manifest.size = os.stat(blobs_path / new_digest).st_size
         with open(blobs_path / new_digest, 'r') as f:
@@ -103,6 +107,11 @@ def convert_docker_manifests_to_oci(directory: Path) -> dict[str, str]:
 
     for from_dd_hash, to_oci_hash in converted.items():
         logger.info("Docker distribution manifest %s is now at OCI manifest %s", from_dd_hash, to_oci_hash)
+        # Remove leftovers so a later olot call does not re-enter conversion and
+        # KeyError on digests that are already OCI in index.json.
+        if from_dd_hash != to_oci_hash:
+            (blobs_path / from_dd_hash).unlink(missing_ok=True)
+
     return converted
 
 
