@@ -55,7 +55,7 @@ def create_oci_artifact_from_model(source_dir: Path, dest_dir: Path):
     )
     manifest_json = json.dumps(manifest.dict(exclude_none=True), indent=4, sort_keys=True)
     manifest_SHA = compute_hash_of_str(manifest_json)
-    with open(sha256_path / manifest_SHA, "w") as f:
+    with open(sha256_path / manifest_SHA, "w", encoding="utf-8") as f:
         f.write(manifest_json)
 
     # Create the OCI image index
@@ -70,19 +70,19 @@ def create_oci_artifact_from_model(source_dir: Path, dest_dir: Path):
         ]
     )
     index_json = json.dumps(index.dict(exclude_none=True), indent=4, sort_keys=True)
-    with open(dest_dir / "index.json", "w") as f:
+    with open(dest_dir / "index.json", "w", encoding="utf-8") as f:
         f.write(index_json)
 
     # Create the OCI-layout file
     oci_layout = create_ocilayout()
-    with open(dest_dir / "oci-layout", "w") as f:
+    with open(dest_dir / "oci-layout", "w", encoding="utf-8") as f:
         f.write(json.dumps(oci_layout.model_dump(), indent=4, sort_keys=True))
 
     # Create empty config file with digest as name
     empty_config: dict[str, str] = {}
     empty_digest_split = Values.empty_digest.split(":")
     if len(empty_digest_split) == 2:
-        with open(dest_dir / "blobs" / "sha256" / empty_digest_split[1], "w") as f:
+        with open(dest_dir / "blobs" / "sha256" / empty_digest_split[1], "w", encoding="utf-8") as f:
             f.write(json.dumps(empty_config))
     else:
         raise ValueError(f"Invalid empty_digest format: {Values.empty_digest}")
@@ -163,7 +163,7 @@ def create_simple_oci_artifact(source_path: Path,
         cds.append(cd)
     mc_json = mc.model_dump_json(exclude_none=True)
     mc_json_hash = compute_hash_of_str(mc_json)
-    (blobs_path / mc_json_hash).write_text(mc_json)
+    (blobs_path / mc_json_hash).write_text(mc_json, encoding="utf-8")
     manifest = create_oci_image_manifest(
         config=ContentDescriptor(
                 mediaType=MediaTypes.config,
@@ -181,10 +181,10 @@ def create_simple_oci_artifact(source_path: Path,
     manifest_json = manifest.model_dump_json(indent=2, exclude_none=True)
     manifest_SHA = compute_hash_of_str(manifest_json)
     manifest_blob_path = blobs_path / manifest_SHA
-    manifest_blob_path.write_text(manifest.model_dump_json(indent=2, exclude_none=True))
+    manifest_blob_path.write_text(manifest.model_dump_json(indent=2, exclude_none=True), encoding="utf-8")
     
     layout = OCIImageLayout(imageLayoutVersion=ImageLayoutVersion.field_1_0_0)
-    (oci_layout_path / "oci-layout").write_text(layout.model_dump_json(indent=2, exclude_none=True))
+    (oci_layout_path / "oci-layout").write_text(layout.model_dump_json(indent=2, exclude_none=True), encoding="utf-8")
 
     index = OCIImageIndex(schemaVersion=2,
                           mediaType=MediaTypes.index,
@@ -198,4 +198,4 @@ def create_simple_oci_artifact(source_path: Path,
                           ],
                           artifactType=None,
                           )
-    (oci_layout_path / "index.json").write_text(index.model_dump_json(indent=2, exclude_none=True))
+    (oci_layout_path / "index.json").write_text(index.model_dump_json(indent=2, exclude_none=True), encoding="utf-8")
