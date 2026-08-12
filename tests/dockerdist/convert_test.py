@@ -6,11 +6,12 @@ import shutil
 from pathlib import Path
 from pprint import pprint
 
+from olot.basics import oci_layers_on_top
 from olot.dockerdist.convert import (
     check_if_oci_layout_contains_docker_manifests,
     convert_docker_manifests_to_oci,
 )
-from tests.common import get_test_data_path
+from tests.common import get_test_data_path, sample_model_path
 
 
 def test_convert_docker_manifest_to_oci(tmp_path: Path):
@@ -18,7 +19,7 @@ def test_convert_docker_manifest_to_oci(tmp_path: Path):
     test_data_dir = get_test_data_path() / "dockerdist1"
     target_ocilayout = tmp_path / "myocilayout"
     shutil.copytree(test_data_dir, target_ocilayout)
-    
+
     oci_manifests = convert_docker_manifests_to_oci(target_ocilayout)
     pprint(oci_manifests)
     expected_oci_manifests = {
@@ -27,6 +28,24 @@ def test_convert_docker_manifest_to_oci(tmp_path: Path):
         '885f375357aa7b252b2faeb5446e6e30c55bd4af077a04a1b9a9758f538874d2': '476fdac39ab869957733272f335a34eafcae40a31a8fa33dab46fd04df281760',
         }
     assert oci_manifests == expected_oci_manifests
+    # Leftover Docker manifests must be removed so a later olot call is safe.
+    assert not check_if_oci_layout_contains_docker_manifests(target_ocilayout)
+    for old_hash in expected_oci_manifests:
+        assert not (target_ocilayout / "blobs" / "sha256" / old_hash).exists()
+
+
+def test_convert_docker_manifest_is_safe_across_multiple_olot_calls(tmp_path: Path):
+    """Regression: second olot call used to KeyError after Docker→OCI convert."""
+    test_data_dir = get_test_data_path() / "dockerdist1"
+    target_ocilayout = tmp_path / "myocilayout"
+    shutil.copytree(test_data_dir, target_ocilayout)
+
+    model = sample_model_path() / "model.joblib"
+    other = sample_model_path() / "hello.md"
+    oci_layers_on_top(target_ocilayout, [model])
+    assert not check_if_oci_layout_contains_docker_manifests(target_ocilayout)
+    # Second call must not re-enter convert and KeyError.
+    oci_layers_on_top(target_ocilayout, [other])
 
 
 def test_check_if_oci_layout_contains_docker_manifests():
@@ -36,4 +55,3 @@ def test_check_if_oci_layout_contains_docker_manifests():
     assert not check_if_oci_layout_contains_docker_manifests(get_test_data_path() / "ocilayout3")
     assert not check_if_oci_layout_contains_docker_manifests(get_test_data_path() / "ocilayout4")
     assert not check_if_oci_layout_contains_docker_manifests(get_test_data_path() / "ocilayout5")
-
