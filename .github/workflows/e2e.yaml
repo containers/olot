@@ -27,7 +27,7 @@ jobs:
     - name: Install uv
       uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
     - name: Install-only specific KinD version (so it's up-to-date)
-      uses: helm/kind-action@ef37e7f390d99f746eb8b610417061a60e82a6cc # v1
+      uses: helm/kind-action@06c1ae10762d3b9c1644e7fe69596ae519e015a2 # v1.15.0
       with:
         version: ${{ env.KIND_VERSION }}
         node_image: ${{ env.KIND_NODE_IMAGE }}
@@ -135,7 +135,7 @@ jobs:
     - name: Install uv
       uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
     - name: Install-only specific KinD version (so it's up-to-date)
-      uses: helm/kind-action@ef37e7f390d99f746eb8b610417061a60e82a6cc # v1
+      uses: helm/kind-action@06c1ae10762d3b9c1644e7fe69596ae519e015a2 # v1.15.0
       with:
         version: ${{ env.KIND_VERSION }}
         node_image: ${{ env.KIND_NODE_IMAGE }}
@@ -205,7 +205,7 @@ jobs:
     - name: Install uv
       uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
     - name: Install-only specific KinD version (so it's up-to-date)
-      uses: helm/kind-action@ef37e7f390d99f746eb8b610417061a60e82a6cc # v1
+      uses: helm/kind-action@06c1ae10762d3b9c1644e7fe69596ae519e015a2 # v1.15.0
       with:
         version: ${{ env.KIND_VERSION }}
         node_image: ${{ env.KIND_NODE_IMAGE }}
@@ -232,7 +232,7 @@ jobs:
     - name: Install uv
       uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
     - name: Install-only specific KinD version (so it's up-to-date)
-      uses: helm/kind-action@ef37e7f390d99f746eb8b610417061a60e82a6cc # v1
+      uses: helm/kind-action@06c1ae10762d3b9c1644e7fe69596ae519e015a2 # v1.15.0
       with:
         version: ${{ env.KIND_VERSION }}
         node_image: ${{ env.KIND_NODE_IMAGE }}
@@ -260,7 +260,7 @@ jobs:
     - name: Install uv
       uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
     - name: Install-only specific KinD version (so it's up-to-date)
-      uses: helm/kind-action@ef37e7f390d99f746eb8b610417061a60e82a6cc # v1
+      uses: helm/kind-action@06c1ae10762d3b9c1644e7fe69596ae519e015a2 # v1.15.0
       with:
         version: ${{ env.KIND_VERSION }}
         node_image: ${{ env.KIND_NODE_IMAGE }}
@@ -333,7 +333,7 @@ jobs:
     - name: Install uv
       uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
     - name: Install-only specific KinD version (so it's up-to-date)
-      uses: helm/kind-action@ef37e7f390d99f746eb8b610417061a60e82a6cc # v1
+      uses: helm/kind-action@06c1ae10762d3b9c1644e7fe69596ae519e015a2 # v1.15.0
       with:
         version: ${{ env.KIND_VERSION }}
         node_image: ${{ env.KIND_NODE_IMAGE }}
@@ -412,7 +412,7 @@ jobs:
     - name: Install uv
       uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
     - name: Install-only specific KinD version (so it's up-to-date)
-      uses: helm/kind-action@ef37e7f390d99f746eb8b610417061a60e82a6cc # v1
+      uses: helm/kind-action@06c1ae10762d3b9c1644e7fe69596ae519e015a2 # v1.15.0
       with:
         version: ${{ env.KIND_VERSION }}
         node_image: ${{ env.KIND_NODE_IMAGE }}
