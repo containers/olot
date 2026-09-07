@@ -11,7 +11,7 @@ def is_oras_py() -> bool:
 def _extract_hostname(reference: str) -> str:
     """Extract the registry hostname from an OCI image reference.
     """
-    ref = reference.split("@")[0]
+    ref = reference.split("@", maxsplit=1)[0]
     if "/" not in ref:
         # Bare image name (e.g. "busybox:latest") implies docker.io
         return "docker.io"

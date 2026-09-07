@@ -425,12 +425,14 @@ def test_modelcard_in_model_files_and_remove_originals(tmp_path: Path, caplog):
     assert "ModelCard detected in model_files, this will result in duplicated layers for the ModelCard (negligible, but not optimal)." in caplog.text
 
     print("checking for remove_originals=RemoveOriginals.DEFAULT")
-    with pytest.raises(ValueError, match="ModelCard detected in model_files, while remove_originals flag is set; this is not allowed as it would remove the original ModelCard before having a chance of adding it as its proper layer."):
+    with pytest.raises(ValueError) as exc_info:
         oci_layers_on_top(target_ocilayout, models, modelcard, remove_originals=RemoveOriginals.DEFAULT)
+    assert str(exc_info.value) == "ModelCard detected in model_files, while remove_originals flag is set; this is not allowed as it would remove the original ModelCard before having a chance of adding it as its proper layer."
 
     print("checking for remove_originals=RemoveOriginals.ALL")
-    with pytest.raises(ValueError, match="ModelCard detected in model_files, while remove_originals flag is set; this is not allowed as it would remove the original ModelCard before having a chance of adding it as its proper layer."):
+    with pytest.raises(ValueError) as exc_info:
         oci_layers_on_top(target_ocilayout, models, modelcard, remove_originals=RemoveOriginals.ALL)
+    assert str(exc_info.value) == "ModelCard detected in model_files, while remove_originals flag is set; this is not allowed as it would remove the original ModelCard before having a chance of adding it as its proper layer."
 
 
 def test_add_labels_and_annotations(tmp_path: Path):
@@ -518,7 +520,7 @@ def test_oci_layers_on_top_nested_files(tmp_path: Path, use_root_dir):
     int8_dir.mkdir(parents=True)
     (int8_dir / "model.onnx").write_bytes(os.urandom(96))
 
-    models = sorted(model_dir.rglob("*"), key=lambda p: str(p))
+    models = sorted(model_dir.rglob("*"), key=str)
     models = [m for m in models if m.is_file()]
 
     if use_root_dir:
