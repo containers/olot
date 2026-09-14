@@ -25,7 +25,7 @@ jobs:
       with:
         python-version: ${{ env.PYTHON_VERSION }}
     - name: Install uv
-      uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+      uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
     - name: Install-only specific KinD version (so it's up-to-date)
       uses: helm/kind-action@06c1ae10762d3b9c1644e7fe69596ae519e015a2 # v1.15.0
       with:
@@ -133,7 +133,7 @@ jobs:
       with:
         python-version: ${{ env.PYTHON_VERSION }}
     - name: Install uv
-      uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+      uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
     - name: Install-only specific KinD version (so it's up-to-date)
       uses: helm/kind-action@06c1ae10762d3b9c1644e7fe69596ae519e015a2 # v1.15.0
       with:
@@ -203,7 +203,7 @@ jobs:
       with:
         python-version: ${{ env.PYTHON_VERSION }}
     - name: Install uv
-      uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+      uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
     - name: Install-only specific KinD version (so it's up-to-date)
       uses: helm/kind-action@06c1ae10762d3b9c1644e7fe69596ae519e015a2 # v1.15.0
       with:
@@ -230,7 +230,7 @@ jobs:
       with:
         python-version: ${{ env.PYTHON_VERSION }}
     - name: Install uv
-      uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+      uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
     - name: Install-only specific KinD version (so it's up-to-date)
       uses: helm/kind-action@06c1ae10762d3b9c1644e7fe69596ae519e015a2 # v1.15.0
       with:
@@ -258,7 +258,7 @@ jobs:
       with:
         python-version: ${{ env.PYTHON_VERSION }}
     - name: Install uv
-      uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+      uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
     - name: Install-only specific KinD version (so it's up-to-date)
       uses: helm/kind-action@06c1ae10762d3b9c1644e7fe69596ae519e015a2 # v1.15.0
       with:
@@ -331,7 +331,7 @@ jobs:
       with:
         python-version: ${{ env.PYTHON_VERSION }}
     - name: Install uv
-      uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+      uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
     - name: Install-only specific KinD version (so it's up-to-date)
       uses: helm/kind-action@06c1ae10762d3b9c1644e7fe69596ae519e015a2 # v1.15.0
       with:
@@ -410,7 +410,7 @@ jobs:
       with:
         python-version: ${{ env.PYTHON_VERSION }}
     - name: Install uv
-      uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+      uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
     - name: Install-only specific KinD version (so it's up-to-date)
       uses: helm/kind-action@06c1ae10762d3b9c1644e7fe69596ae519e015a2 # v1.15.0
       with:
@@ -513,7 +513,7 @@ jobs:
       with:
         python-version: ${{ env.PYTHON_VERSION }}
     - name: Install uv
-      uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+      uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
     - name: Run the build and install the python wheel
       run: |
         make build
@@ -537,7 +537,7 @@ jobs:
       with:
         python-version: ${{ env.PYTHON_VERSION }}
     - name: Install uv
-      uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+      uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
     - name: Install dependencies
       run: |
         make install
