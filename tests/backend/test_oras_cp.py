@@ -22,6 +22,8 @@ def test_is_oras():
 @pytest.mark.e2e_oras
 def test_oras_pull(tmp_path):
     """Test oras to pull/dl a known base-image to an oci-layout
+
+    OCI image-layout spec do not specify ordering of tagged descriptors in `index.json`: https://github.com/opencontainers/image-spec/blob/v1.1.1/image-layout.md#indexjson-file
     """
     oras_pull("quay.io/mmortari/hello-world-wait:latest", tmp_path)
 
@@ -30,10 +32,14 @@ def test_oras_pull(tmp_path):
     mut = read_ocilayout_root_index(tmp_path)
     assert mut.schemaVersion == 2
     assert len(mut.manifests) == 3
-    manifest0 = mut.manifests[0]
-    assert manifest0.mediaType == "application/vnd.oci.image.index.v1+json"
-    assert manifest0.digest == "sha256:d437889e826ecce2116ac711469bd09b1bb3c64d45055cbf23a6f8f3db223b8b"
-    assert manifest0.size == 491
+
+    # per image-layout spec, we can't rely on `:latest` being the first one, we locate it:
+    tagged = [m for m in mut.manifests if (m.annotations or {}).get("org.opencontainers.image.ref.name") == "latest"]
+    assert len(tagged) == 1
+    manifest_latest = tagged[0]
+    assert manifest_latest.mediaType == "application/vnd.oci.image.index.v1+json"
+    assert manifest_latest.digest == "sha256:d437889e826ecce2116ac711469bd09b1bb3c64d45055cbf23a6f8f3db223b8b"
+    assert manifest_latest.size == 491
 
 
 @pytest.mark.e2e_oras
